@@ -5,13 +5,15 @@
 
 std::vector <std::string> get_parameters(int , char**) ;
 
+void get_help(std::string firstparam, int argc_, std::string version ) ;
+
 void check_te_database( std::string te_data, int n_expect_fields) ;
 
 bool exists (const std::string&) ;
 
 void check_folder (const std::string&) ;
 
-void print_help() ;
+void print_help(int, int) ;
 
 std::string remove_ext(std::string) ;
 

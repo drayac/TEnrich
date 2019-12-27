@@ -19,6 +19,7 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 std::string this_dir = <FOLDER_INSTALL> ;
+std::string version  = <VERSION> ;
 
 std::vector <std::string> get_parameters(int c_argc, char *c_argv[]){
     if (c_argc < 1) {
@@ -31,7 +32,7 @@ std::vector <std::string> get_parameters(int c_argc, char *c_argv[]){
     std::string ref_subfam = this_dir + "/db/Subfam_ref_TE.txt" ;
     std::string ref_fam = this_dir + "/db/Fam_ref_TE.txt" ;
     std::string ref_clust = this_dir + "/db/Clusters_ref_TE.txt" ;
-    std::string te_database = this_dir + "/db/hg19_TE_repmask_LTRm_s_20140131.bed" ;
+    std::string te_database = this_dir + "/db/hg19_TE_repmask_LTRm_s_20140131.bed.gz" ;
     std::string single_file = "empty" , idx_col = "-1" ;
     std::string destination ; 
     int i ;
@@ -180,43 +181,86 @@ std::vector <std::string> get_parameters(int c_argc, char *c_argv[]){
     return named_params ;
 }
 
-void print_help(){
+void get_help(std::string firstparam, int argc_, std::string version ){
+    if ( argc_ > 1 ){
+        if ( firstparam == "-h" || firstparam == "--help" ){
+            print_help(50,50) ;
+            exit (EXIT_FAILURE) ;
+        }
+        if ( firstparam == "-v" || firstparam == "--version" ){
+            std::cout << "TEnrich v" << version << "– written by Alexandre Coudray at the EPFL (2019)\n\n" ;
+            exit (EXIT_FAILURE) ;
+        }
+    }
+}
+
+void print_help_line(std::string header, std::string long_line, int X, int Y){
+    int left_char = long_line.size() , line_n = 0 ;
+    int start_char = 0, length_line = Y , shift = 0 ;
+    do {
+        start_char = line_n * Y + shift ;
+        length_line = MIN(left_char, Y) ;
+
+        std::cout << std::left << std::setw(X) << header <<  long_line.substr(start_char,length_line) ;
+        header = "" ;
+        if ( start_char + length_line + 1 < long_line.size() ){
+            char last_char = long_line[start_char + length_line - 1] ;
+            char next_char = long_line[start_char + length_line] ; 
+            char sec_next_char = long_line[start_char + length_line + 1] ;
+            if ( next_char != ' ' && sec_next_char == ' ' ){
+                std::cout << next_char  ;
+                shift += 2 ;
+            }
+            if ( next_char != ' ' && sec_next_char != ' ' && left_char > 2*Y && last_char != ' ' ){
+                std::cout << "–"  ;
+            }
+            if ( next_char == ' ' && sec_next_char != ' ' ){
+                shift++ ;
+            }
+        }
+        std::cout << std::endl ;
+
+        line_n++ ;
+        left_char = long_line.size() - start_char ;
+
+    } while ( left_char >= Y )  ;
+    std::cout << std::endl ;
+}
+
+void print_help(int X, int Y){
+
 	std::cout << " __________         _     __ " << std::endl;
 	std::cout << "/_  __/ __/__  ____(_)___/ / " << std::endl;
 	std::cout << " / / / _// _ \\/ __/ / __/ _ \\" << std::endl;
 	std::cout << "/_/ /___/_//_/_/ /_/\\__/_//_/" << std::endl;
-	std::cout << "                        v.0.7" << std::endl << std::endl ;
-	std::cout << "Usage :                      " << std::endl ;
+	std::cout << "                        v." << version << std::endl << std::endl ;
+	std::cout << "Required options :                      " << std::endl ;
 	std::cout << "./TEnrich --bed_dir path/to/dirWithBeds \\\n" ;
-    std::cout << "          --single_file [optional] \\" << std::endl ;
-    std::cout << "          --idx_col [optional] \\" << std::endl ;
 	std::cout << "          --out_dir path/to/dirOut \\\n" ;
-	std::cout << "          --genome_size size_genome [optional] \\" << std::endl ;
-	std::cout << "          --comp_sense 'te_inter_peak','peak_inter_te','auto' [optional] \\" << std::endl ;
-    std::cout << "          --stat_test_type 'greater','less' [optional] \\" << std::endl ;
-    std::cout << "          --padj 'true','false' [optional] \\" << std::endl ;
-    std::cout << "          --ref_subfam [optional] \\" << std::endl ;
-    std::cout << "          --ref_fam [optional] \\" << std::endl ;
-    std::cout << "          --ref_cluster [optional] \\" << std::endl ;
-    std::cout << "          --te_database [optional] \\" << std::endl ;
     std::cout << "\n" ;
-    std::cout << "\n\t--bed_dir path/to/dirWithBeds [string] : every file with *.bed ext in the folder will be used" << std::endl ;
-    std::cout << "\n\t--single_file path/to/bed_file [string] : if this is given, it will use a single file instead of a group of bed file to do the enrichment (cancels --bed_dir option). If no index column is given, will perform the enrichment analysis on each single lines. Otherwise, it will group lines per name of the feature in the column designed by --idx_col option." << std::endl ;
-    std::cout << "\n\t--idx_col [integer] : designate the index of the column (WARNING: 0-based index, which means index 0 is the first column, index 1 is the second, etc...) to be used in file given in --single_file to group lines." << std::endl ;
-	std::cout << "\n\t--out_dir path/to/dirOut [string] : The folder is created and results written inside (WARNING: everything is cleaned before a new run)\n" ;
-	std::cout << "\n\t--genome_size [integer/double] : Genome size over which the enrichment calculation will be done. Expect only digits. [OPTIONAL]. Default value : 3088269832\n" ;
-    std::cout << "\n\t--comp_sense ['te_in_peak','peak_in_te','auto'] : Defines the direction for the comparison, 'te_in_peak' or 'peak_in_te'. In 'auto' mode, it will take the enrichment of the smaller to the bigger [OPTIONAL]. Default value : 'auto'\n" ;
-    std::cout << "\n\t--stat_test_type ['greater','less'] : For statistical test done (Hypergeometric and Binomial), tell if we want the right tail ('greater') or the left tail ('less'), in other words the probability of having a equal or greater / equal or lower number of hits in the intersect. [OPTIONAL]. Default value : 'greater'\n" ;
-    std::cout << "\n\t--padj ['true','false'] : tell if you want to print the adjusted p-val (with the Benjamin-Hochsberg correction). [OPTIONAL]. Default value : 'true'\n" ;
-    std::cout << "\n\t--ref_subfam [STRING] : subfam ref file obtained with utils/make_ref_file.pl. If not specified, the one for hg19 in db/ folder will be used [OPTIONAL]. Default value : 'db/Subfam_ref_TE.txt'\n" ;
-    std::cout << "\n\t--ref_fam [STRING] : fam ref file obtained with utils/make_ref_file.pl. If not specified, the one for hg19 in db/ folder will be used [OPTIONAL]. Default value : 'db/Fam_ref_TE.txt'\n" ;
-    std::cout << "\n\t--ref_cluster [STRING] : TE cluster file obtained with utils/make_ref_file.pl. If not specified, the one for hg19 in db/ folder will be used [OPTIONAL]. Default value : 'db/Clusters_ref_TE.txt'\n" ;
-    std::cout << "\n\t--te_database [STRING] : database of TE used to make the intersection. Should be in bed format, as returned by utils/convert_repeatmasker.sh. By default, uses hg19 with LTR merged by J.Duc. [OPTIONAL]. Default value : 'db/hg19_TE_repmask_LTRm_s_20140131.bed'\n" ;
+    print_help_line("--bed_dir path/to/dirWithBeds [string]","every file with *.bed ext in the folder will be used",X,Y) ;
+    print_help_line("--single_file path/to/bed_file [string]", "if this is given, it will use a single file instead of a group of bed file to do the enrichment (cancels --bed_dir option). If no index column is given, will perform the enrichment analysis on each single lines. Otherwise, it will group lines per name of the feature in the column designed by --idx_col option.", X, Y) ;
+    print_help_line("--idx_col [integer]","designate the index of the column (WARNING: 0-based index, which means index 0 is the first column, index 1 is the second, etc...) to be used in file given in --single_file to group lines.",X,Y) ;
+    print_help_line("--out_dir path/to/dirOut [string]","The folder is created and results written inside (WARNING: everything is cleaned before a new run)",X,Y) ;
+    print_help_line("--genome_size [integer/double]","Genome size over which the enrichment calculation will be done. Expect only digits. [OPTIONAL]. Default value : 3088269832",X,Y) ;
+    print_help_line("--comp_sense ['te_in_peak','peak_in_te','auto']","Defines the direction for the comparison, 'te_in_peak' or 'peak_in_te'. In 'auto' mode, it will take the enrichment of the smaller to the bigger [OPTIONAL]. Default value : 'auto'",X,Y) ;
+    print_help_line("--stat_test_type ['greater','less']","For statistical test done (Hypergeometric and Binomial), tell if we want the right tail ('greater') or the left tail ('less'), in other words the probability of having a equal or greater / equal or lower number of hits in the intersect. [OPTIONAL]. Default value : 'greater'",X,Y) ;
+    print_help_line("--padj ['true','false']","tell if you want to print the adjusted p-val (with the Benjamin-Hochsberg correction). [OPTIONAL]. Default value : 'true'",X,Y) ;
+    print_help_line("--ref_subfam [STRING]","subfam ref file obtained with utils/make_ref_file.pl. If not specified, the one for hg19 in db/ folder will be used [OPTIONAL]. Default value : 'db/Subfam_ref_TE.txt'",X,Y) ;
+    print_help_line("--ref_fam [STRING]","fam ref file obtained with utils/make_ref_file.pl. If not specified, the one for hg19 in db/ folder will be used [OPTIONAL]. Default value : 'db/Fam_ref_TE.txt'",X,Y) ;
+    print_help_line("--te_database [STRING]","database of TE used to make the intersection. Should be in bed format, as returned by utils/convert_repeatmasker.sh. By default, uses hg19 with LTR merged by J.Duc. [OPTIONAL]. Default value : 'db/hg19_TE_repmask_LTRm_s_20140131.bed",X,Y) ; 
 
 	exit (EXIT_FAILURE) ;
 }
 
-void check_te_database( std::string te_data, int n_expect_fields){
+void check_te_database( std::string te_data_ziped, int n_expect_fields){
+    // gzip and head first 1k line of te_database
+    std::string te_data = "temp_te_head.txt" ;
+    std::stringstream gzip_head_cmd ;
+    gzip_head_cmd << "gzip -cd "<< te_data_ziped << " | head -1000 > " << te_data ;
+    system(&(gzip_head_cmd.str()[0])) ;
+
+    // read and count number of fields 
     std::ifstream te_tab_check(te_data);
     int n_line_check_te = 1 ;
     if (this_is_empty(te_tab_check)){
@@ -248,6 +292,7 @@ void check_te_database( std::string te_data, int n_expect_fields){
         }
     }
     te_tab_check.close() ;
+    system("rm temp_te_head.txt") ;
     std::cout << "TE database seems to have to right number of fields\n" ;
 }
 

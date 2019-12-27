@@ -31,58 +31,39 @@ int main(int argc, char* argv[])
     bool print_padj = 1 ;
     int bed_n_field ; 
     std::string this_dir = <FOLDER_INSTALL> ;
+    std::string version  = <VERSION> ; 
+    
+    check_folder(this_dir) ;
     
     // Get help
-    if ( argc > 1 ){
-        std::string firstparam = std::string(argv[1]) ;
-        if ( firstparam == "-h" || firstparam == "--help" ){
-            print_help() ;
-            exit (EXIT_FAILURE) ;
-        }
-        if ( firstparam == "-v" || firstparam == "--version" ){
-            std::cout << "TEnrich V0.7 – written by Alexandre Coudray at the EPFL (2019)\n\n" ;
-            exit (EXIT_FAILURE) ;
-        }
-    }
+    get_help(std::string(argv[1]), argc, version) ;
 
-    // Get parameters
+    // Get / initialize parameters
     std::vector <std::string> input = get_parameters(argc,argv) ; 
-    std::string bed_path = input[0] ; std::string out_path = input[1] ;
+    std::string bed_path = input[0] , out_path = input[1] , comparison_direction = input[3] , comparison_type = input[4] , print_padj_str = input[5] , ref_file = input[6] , ref_file_fam = input[7] , ref_file_clust = input[8] , te_data = input[9] , single_file = input[10] ;
     long int size_hg19 = std::stol(input[2]) ; 
-    std::string comparison_direction = input[3] ;
-    std::string comparison_type = input[4] ;
-    std::string print_padj_str = input[5] ;
-    std::string ref_file = input[6] ;
-    std::string ref_file_fam = input[7] ;
-    std::string ref_file_clust = input[8] ;
-    std::string te_data = input[9] ;
-    std::string single_file = input[10] ;
     int idx_col = std::stoi(input[11]) ;
-
-    bool comp_clust = true ;
-
     if ( print_padj_str.compare("false") == 0 ){ print_padj = 0 ; }
-    
-    //check_folder(bed_path) ; 
-    check_folder(this_dir) ;
 
     // nonTE parameters 
     int total_nonTE = 4433186 ; // we estimate the number of nonTE interval ~= TE interval after merge
     int total_nonTE_bp = size_hg19 - 1434913179 ; // size_hg19 - genome span of TE    
     double nonTE_avg_size = double(total_nonTE_bp) / double(total_nonTE) ;
     double nonTE_genome_ratio = double(total_nonTE_bp) / double(size_hg19) ; 
-    
-    //Check TE data number of fields
+   
+    // Create temp directory if not existant
+    system("mkdir -p temp_TEnrich") ;
+ 
+    // Creating output folders
+    create_folder(out_path,"summary_bed") ; create_folder(out_path,"summary_te_fam") ;
+    create_folder(out_path,"summary_te_subfam") ; create_folder(out_path,"summary_te_clust") ;
+
+    // Check TE data number of fields
     std::cout << "Checking that TE data is ok\n" ;
     int expect_n_fields = 9 ;
     check_te_database(te_data, expect_n_fields ) ;
-    
-    // Create output directory if not existant
-    system("mkdir -p temp_TEnrich") ;
- 
-    // Creating useful folders
-    create_folder(out_path,"summary_bed") ; create_folder(out_path,"summary_te_fam") ;
-    create_folder(out_path,"summary_te_subfam") ; create_folder(out_path,"summary_te_clust") ;
+   
+    exit(EXIT_FAILURE) ;
 
     // Initialize Hash Tables
     std::unordered_map<std::string, int> peak_count , peak_count_on_te , peak_len , peak_total_bp , te_inter_peak , te_inter_peak_unique, teFam_inter_peak, teFam_inter_peak_unique, teClust_inter_peak, teClust_inter_peak_unique ;
@@ -406,11 +387,24 @@ int main(int argc, char* argv[])
                         long long br_22 = MAX( int(double(size_hg19) / double(total_average)) - br_11 - br_21 - br_12, 1)  ;
                         double pval_alafisher_rev = fisher_exact(br_11, br_12, br_21, b_22, comparison_type) ;
                         all_pvals_alafisher_rev.push_back (pval_alafisher_rev) ;
-                        if ( mean_peaklen > avg_subfam_size || comparison_direction.compare("te_in_peak") == 0 ){
-                            all_pvals_alafisher_best.push_back (pval_alafisher_rev) ;
+
+                        if ( comparison_direction.compare("auto") ){
+                            // in auto mode, compute the smallest against the largest
+                            if ( mean_peaklen > avg_subfam_size ){
+                                all_pvals_alafisher_best.push_back (pval_alafisher_rev) ;
+                            }
+                            if ( mean_peaklen <= avg_subfam_size ){
+                                all_pvals_alafisher_best.push_back (pval_alafisher) ;
+                            }
                         }
-                        if ( mean_peaklen <= avg_subfam_size || comparison_direction.compare("peak_in_te") == 0 ){
-                            all_pvals_alafisher_best.push_back (pval_alafisher) ;
+                        else
+                        {
+                            if ( comparison_direction.compare("te_in_peak") == 0 ){
+                                all_pvals_alafisher_best.push_back (pval_alafisher_rev) ;
+                            }
+                            else if ( comparison_direction.compare("peak_in_te") == 0 ){
+                                all_pvals_alafisher_best.push_back (pval_alafisher) ;
+                            }
                         }
                         
                         // Binomial exact test with genome ratio as p 
@@ -475,171 +469,7 @@ int main(int argc, char* argv[])
             }
             ref_in.close() ;
 
-// // / // / / /
-//
-//
-//
-//
-//
-//
-//
-//
-//
-            if ( comp_clust ){
-            //////////////////// 
-            /*  TE CLUSTERS   */
-            ////////////////////
-            
-            // Begin enrichment analysis for sample X 
-            std::ifstream ref_in_clust(ref_file_clust);
-            if (this_is_empty(ref_in_clust)){
-                std::cout << "Problem while opening " << ref_file_clust << ", exiting...\n" ;
-                exit (EXIT_FAILURE) ;
-            }
-            if (ref_in_clust.is_open()) {
-                
-                // initialize vectors
-                std::vector<std::string> clust_names;
-                std::vector<double> all_pvals , all_pvals_alafisher , all_pvals_binomial, all_pvals_rev , all_pvals_alafisher_rev , all_pvals_binomial_rev , all_pvals_best , all_pvals_alafisher_best , all_pvals_binomial_best, all_total_bp_clust, all_clust_genome_ratio ;
-                std::vector<int> all_teClust_inter_peak, all_teClust_inter_peak_unique , all_total_clust , all_avg_clust_size;
 
-                // Iterate over clust names of TEs (or sample of bed file 2) 
-                std::string line;
-                while (getline(ref_in_clust, line)) { 
-                    std::istringstream iss(line) ;
-                    std::vector <std::string> fields ;
-                    std::string field ;
-                    while(std::getline(iss, field, '\t')){ 
-                        fields.push_back(field);
-                    }
-
-                    std::string clust_name = fields[0] ;
-                    std::string key = clust_name + "_" + tag_name ;
-                    int n_clust = std::stoi(fields[1]) ;
-                    int total_bp_length_clust = std::stoi(fields[2]) ;
-                    double avg_clust_size_db = std::stod(fields[3]) ;
-                    int avg_clust_size = int(avg_clust_size_db) ;
-                    double ratio_genome_clust = double(total_bp_length_clust)/double(size_hg19) ;
-                    double total_Mbp_len_clust = double(total_bp_length_clust) / 1000000 ;
-
-                    all_teClust_inter_peak.push_back(teClust_inter_peak[key]) ;
-                    all_teClust_inter_peak_unique.push_back(teClust_inter_peak_unique[key]) ;
-                    all_total_clust.push_back(n_clust);
-                    all_total_bp_clust.push_back(total_Mbp_len_clust);
-                    all_avg_clust_size.push_back(avg_clust_size);
-                    all_clust_genome_ratio.push_back(ratio_genome_clust);
-
-                    // Calculation of the p-values for each 1-1 relation
-                    if (teClust_inter_peak.find(key) == teClust_inter_peak.end() || teClust_inter_peak[key] == 0){
-                        clust_names.push_back (fields[0]) ; all_pvals.push_back (1.0) ;
-                        all_pvals_alafisher.push_back (1.0) ; all_pvals_binomial.push_back (1.0) ;
-                        all_pvals_rev.push_back (1.0) ; all_pvals_alafisher_rev.push_back (1.0) ;
-                        all_pvals_binomial_rev.push_back (1.0) ; all_pvals_best.push_back (1.0) ;
-                        all_pvals_alafisher_best.push_back (1.0) ; all_pvals_binomial_best.push_back (1.0) ;
-                    }
-                    else
-                    {
-                        ////////////////////////////////////// 
-                        /* PVAL ENRICHMENT PEAKs AMONG TEs  */
-                        //////////////////////////////////////
-                        
-                        // Regular HyperGeometric
-                        long long a_11 = teClust_inter_peak[key] ;
-                        long long a_12 = MAX(0L,n_clust - a_11) ;
-                        long long a_21 = MAX(0L,my_peak_count_on_te - a_11) ;
-                        long long a_22 = te_data_size - a_11 - a_12 - a_21 ;
-                        double pval = fisher_exact(a_11, a_12, a_21, a_22, comparison_type) ;
-                        all_pvals.push_back (pval) ;
-
-                        // HyperGeometric with genome occupency - 'ala bedtools fisher'
-                        int total_average = mean_peaklen + avg_clust_size ;
-                        long long b_11 = teClust_inter_peak[key] ;
-                        long long b_12 = MAX(a_12, n_clust - b_11 ) ;
-                        long long b_21 = MAX(0L,my_peak_count - b_11) ;
-                        long long b_22 = MAX( int(double(size_hg19) / double(total_average)) - b_11 - b_21 - b_12, 1 )  ;
-                        double pval_alafisher = fisher_exact(b_11, b_12, b_21, b_22, comparison_type) ;
-                        all_pvals_alafisher.push_back (pval_alafisher) ;
-
-                        // Binomial exact test with genome ratio as p
-                        int n_tot = my_peak_count ; // number of trials
-                        int X_obs = teClust_inter_peak[key] ;
-                        double p_obs = double( mean_peaklen*X_obs ) / double(total_bp_length_clust) ;
-                        double q_obs = 1 - p_obs ;
-                        double p_exp = double(total_bp_length_clust) / double(size_hg19) ; // Prob to touch clust by random
-                        double pval_binomial = pbinom(X_obs-1, n_tot, p_exp, comparison_type) ;
-                        all_pvals_binomial.push_back(pval_binomial) ;
-
-                        //////////////////////////////////////
-                        /* PVAL ENRICHMENT TEs AMONG PEAKs  */
-                        //////////////////////////////////////
-
-                        // Regular HyperGeometric
-                        long long ar_11 = teClust_inter_peak_unique[key] ;
-                        long long ar_12 = MAX(0L,n_clust - ar_11) ;
-                        long long ar_21 = MAX(0L,my_peak_count_on_te - ar_11) ;
-                        long long ar_22 = te_data_size - ar_11 - ar_12 - ar_21 ;
-                        double pval_rev = fisher_exact(ar_11, ar_12, ar_21, ar_22, comparison_type) ;
-                        all_pvals_rev.push_back (pval_rev) ;
-                        if ( mean_peaklen > avg_clust_size || comparison_direction.compare("te_in_peak") == 0 ) all_pvals_best.push_back (pval_rev) ;
-                        if ( mean_peaklen <= avg_clust_size || comparison_direction.compare("peak_in_te") == 0 ) all_pvals_best.push_back (pval) ;
-
-                        // HyperGeometric with genome occupency - 'ala bedtools fisher'
-                        total_average = avg_clust_size ;
-                        long long br_11 = teClust_inter_peak_unique[key] ;
-                        long long br_12 = MAX(ar_12, n_clust - br_11 ) ;
-                        long long br_21 = MAX(0L,my_peak_count - br_11 ) ;
-                        long long br_22 = MAX( int(double(size_hg19) / double(total_average)) - br_11 - br_21 - br_12, 1)  ;
-                        double pval_alafisher_rev = fisher_exact(br_11, br_12, br_21, b_22, comparison_type) ;
-                        all_pvals_alafisher_rev.push_back (pval_alafisher_rev) ;
-                        if ( mean_peaklen > avg_clust_size || comparison_direction.compare("te_in_peak") == 0 ){
-                            all_pvals_alafisher_best.push_back (pval_alafisher_rev) ;
-                        }
-                        if ( mean_peaklen <= avg_clust_size || comparison_direction.compare("peak_in_te") == 0 ){
-                            all_pvals_alafisher_best.push_back (pval_alafisher) ;
-                        }
-                        
-                        // Binomial exact test with genome ratio as p 
-                        n_tot = n_clust ; // number of trials
-                        X_obs = teClust_inter_peak_unique[key] ;
-                        p_exp = ratio_genome_peak ; // Prob to touch clust by random
-                        double pval_binomial_rev = pbinom(X_obs-1, n_tot, p_exp, comparison_type) ;
-                        all_pvals_binomial_rev.push_back(pval_binomial_rev) ;
-                        if ( mean_peaklen > avg_clust_size || comparison_direction.compare("te_in_peak") == 0 ) all_pvals_binomial_best.push_back (pval_binomial_rev) ;
-                        if ( mean_peaklen <= avg_clust_size || comparison_direction.compare("peak_in_te") == 0 ) all_pvals_binomial_best.push_back (pval_binomial) ;
-
-                        clust_names.push_back (fields[0]) ;
-                    }
-                }
-
-                // Get ajusted p-values with Benjamin-Hochsberg method 
-                std::unordered_map<std::string, double> padj_hygm_reg = calc_adj_pval(&all_pvals_best, &clust_names, print_padj) ;
-                std::unordered_map<std::string, double> padj_hygm_alaFish = calc_adj_pval(&all_pvals_alafisher_best, &clust_names, print_padj) ;
-                std::unordered_map<std::string, double> padj_hygm_binom = calc_adj_pval(&all_pvals_binomial_best, &clust_names, print_padj) ;
-                
-                // Printing final results with 3 adjusted p-values
-                print_all_pval_adj(matrix_clust, tag_name,
-                        &prhead_sum_clust, &prhead_mat_clust, &all_pvals_binomial_best,
-                        padj_hygm_reg, padj_hygm_alaFish, padj_hygm_binom,
-                        &clust_names, &all_teClust_inter_peak_unique,
-                        &all_total_clust,  &all_teClust_inter_peak,
-                        my_peak_count_on_te, my_peak_count, &all_total_bp_clust,
-                        &all_avg_clust_size, &all_clust_genome_ratio,
-                        peak_total_Mbp, peak_ratio_on_te, ratio_genome_peak,
-                        "te_clust", &prhead_summary_te, out_path ) ;
-            }
-            ref_in_clust.close() ;
-
-            }
-
-            ////
-            ///
-            //
-            //
-            //
-            //
-            //
-            //
-            //
 
             ///////////////// 
             /*  TE FAM     */
