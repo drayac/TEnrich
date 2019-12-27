@@ -1,5 +1,5 @@
 _________________________________________________________________________________
-##TEnrich
+## TEnrich ##
 
             A code for to compute statistical enrichment of transposable elements
             on a group of bed files. 
@@ -9,7 +9,7 @@ laboratory of Virology and Genetics at the EPFL in 2019.
 
 
 _________________________________________________________________________________
-##Versions history
+## Versions history ##
 
 Updates news :
 - v0.2 : -> Enrichment of TE families (prev. only subfam)
@@ -25,9 +25,9 @@ Updates news :
             from a single bed file
 
 _________________________________________________________________________________
-##How to build the executer
+## How to build the executer ##
 
-####How to make the file
+#### How to make the file ####
 launch the following command from the root of TEnrich folder
 
 ./make.pl
@@ -38,13 +38,13 @@ Default compiler : clang++ (developed with clang++-7.0)
 
 Default flags    : -std=c++11
 
-####IMPORTANT : 
+#### IMPORTANT : ####
 Choose wisely where you make the script, because
 you should not move it afterwards (databases in TEnrich/db/ 
 folder should be accessible). If you want to move it, just
 re-do a make after the move.
 
-###How to build with LINUX (tested on SCITAS - EPFL clusters)
+### How to build with LINUX (tested on SCITAS - EPFL clusters) ### 
 
 Here an exemple working with Ubuntu 16.04 and clang6.0 :
 
@@ -54,13 +54,13 @@ On Scitas, you can load module load gcc and use g++
 
 ./make.pl --compiler "g++" --flags "-std=c++11"
 
-####How to get help
+#### How to get help ####
 Once compiled, launch the help with :
 
 ./TEnrich -h        (or --help)
 
 _________________________________________________________________________________
-##Description
+## Description ##
 
         The script was made to work on large number of bed files
         at once. Therefore the input should be a path to a dire-
@@ -69,7 +69,7 @@ ________________________________________________________________________________
         genome size for the enrichment can be changed (Warning:
         don't put scientific notation, e.g. 2.7e9 won't work). 
 
-####Usage :
+#### Usage : ####
           ./TEnrich 
           --bed_dir         path/to/dirWithBeds                     [required]
           --out_dir         path/to/dirOut                          [required] 
@@ -126,7 +126,7 @@ ________________________________________________________________________________
     'db/hg19_TE_repmask_LTRm_s_20140131.bed'  
 
 _________________________________________________________________________________
-______TE database
+## TE database ##
 
 The database of Transposable elements used by the script
 is a curated version of Repeatmasker v.???, where LTRs
@@ -134,9 +134,9 @@ were merged into their LTR-int-LTR version by Julien Duc
 at the EPFL. 
 
 _________________________________________________________________________________
-______Working with another species than hg19
+## Working with another species than hg19 ##
 
-### Work with another Species than hg19 ###
+#### Work with another Species than hg19 ####
 exemple for danRer10 :
 - Download TE database from RepeatMasker
 - convert .fa.out file with utils/convert_repeatMasker.sh :
@@ -152,12 +152,12 @@ grep -v 'Low_complexity\|Satellite\|Simple_repeat\|Unknown' \
 - launch utils/make_ref_TE.pl to make files needed by TEnrich
 INDEX is the col number of the desired feature (subfam/fam) :
 
-# subfam shoudl always be in field 7 (0-based) !!!
+#### subfam should always be in field 7 (0-based) ####
 utils/make_ref_TE.pl --file db/danRer10_repMask406_dfam2_TEs.bed \
     --index 6 \
     > db/danRer10_Subfam_ref_TE.txt
 
-# class/families should always be in field 6 (0-based) !!!
+#### class/families should always be in field 6 (0-based) ####
 utils/make_ref_TE.pl --file db/danRer10_repMask406_dfam2_TEs.bed \
     --index 7 \
     > db/danRer10_Fam_ref_TE.txt
