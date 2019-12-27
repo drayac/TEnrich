@@ -1,7 +1,7 @@
 _________________________________________________________________________________
 ______TEnrich___________________________________________________________________
 
-TEnrich  :  A code for enrichment of Transposable elements
+TEnrich  :  A code for to compute statistical enrichment of transposable elements
             on a group of bed files. 
 
 Code was written in C++11 , by Alexandre Coudray from the
