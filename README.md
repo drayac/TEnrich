@@ -155,4 +155,3 @@ utils/make_ref_TE.pl --file db/danRer10_repMask406_dfam2_TEs.bed \
     --index 7 \
     > db/danRer10_Fam_ref_TE.txt
 
-
