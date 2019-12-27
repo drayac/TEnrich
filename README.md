@@ -25,6 +25,20 @@ Updates news :
             from a single bed file
 
 _________________________________________________________________________________
+## Download and get TEnrich ##
+
+### Two options : ###
+    
+    Go to the desired folder where you want to install TEnrich and launch 
+    git clone https://github.com/alexdray86/TEnrich.git
+
+Second option : 
+
+    Click on the "Clone and download" (green button) above
+
+Then, Follow the instruction below to compile the executer and launch the script 
+
+_________________________________________________________________________________
 ## How to build the executer ##
 
 #### How to make the file ####
@@ -70,21 +84,21 @@ ________________________________________________________________________________
         don't put scientific notation, e.g. 2.7e9 won't work). 
 
 #### Usage : ####
-          ./TEnrich 
-          --bed_dir         path/to/dirWithBeds                     [required]
-          --out_dir         path/to/dirOut                          [required] 
-          --genome_size     size_genome                             [optional] 
-          --comp_sense      'te_inter_peak','peak_inter_te','auto'  [optional] 
-          --stat_test_type  'greater','less'                        [optional] 
-          --padj            'true','false'                          [optional]
-          --ref_subfam      path/to/file                            [optional]
-          --ref_fam         path/to/file                            [optional]
-          --ref_cluster     path/to/file                            [optional]
-          --te_database     path/to/file                            [optional]
-          --help (-h)         
-          --version (-v) 
+    ./TEnrich 
+    --bed_dir         path/to/dirWithBeds                     [required]
+    --out_dir         path/to/dirOut                          [required] 
+    --genome_size     size_genome                             [optional] 
+    --comp_sense      'te_inter_peak','peak_inter_te','auto'  [optional] 
+    --stat_test_type  'greater','less'                        [optional] 
+    --padj            'true','false'                          [optional]
+    --ref_subfam      path/to/file                            [optional]
+    --ref_fam         path/to/file                            [optional]
+    --ref_cluster     path/to/file                            [optional]
+    --te_database     path/to/file                            [optional]
+    --help (-h)         
+    --version (-v) 
   
-    ####--bed_dir 
+    --bed_dir 
     path/to/dirWithBeds [string] : every file with *.bed ext in the
     folder will be used
 
