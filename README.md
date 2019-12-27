@@ -1,7 +1,7 @@
 _________________________________________________________________________________
-______TEnrich___________________________________________________________________
+##TEnrich
 
-TEnrich  :  A code for to compute statistical enrichment of transposable elements
+            A code for to compute statistical enrichment of transposable elements
             on a group of bed files. 
 
 Code was written in C++11 , by Alexandre Coudray from the
@@ -9,7 +9,7 @@ laboratory of Virology and Genetics at the EPFL in 2019.
 
 
 _________________________________________________________________________________
-______Version 0.6________________________________________________________________
+##Versions history
 
 Updates news :
 - v0.2 : -> Enrichment of TE families (prev. only subfam)
@@ -21,25 +21,30 @@ Updates news :
          -> fixed bug when beds of diverse size are given
 - v0.6 : -> fixed bug to allow the use of relative path 
             for --bed_dir and --out_dir parameters
+- v0.7 : -> add --single_file option to make enrichment 
+            from a single bed file
 
 _________________________________________________________________________________
-______How to build the executer__________________________________________________
+##How to build the executer
 
-– How to make the file
+####How to make the file
 launch the following command from the root of TEnrich folder
 
 ./make.pl
 
 Made for clang++ on MacOS, feel free to change the compiler
+
 Default compiler : clang++ (developed with clang++-7.0) 
+
 Default flags    : -std=c++11
 
-IMPORTANT : Choose wisely where you make the script, because
+####IMPORTANT : 
+Choose wisely where you make the script, because
 you should not move it afterwards (databases in TEnrich/db/ 
 folder should be accessible). If you want to move it, just
 re-do a make after the move.
 
---- Build with LINUX or on SCITAS ---
+###How to build with LINUX (tested on SCITAS - EPFL clusters)
 
 Here an exemple working with Ubuntu 16.04 and clang6.0 :
 
@@ -49,13 +54,13 @@ On Scitas, you can load module load gcc and use g++
 
 ./make.pl --compiler "g++" --flags "-std=c++11"
 
-– How to get help
+####How to get help
 Once compiled, launch the help with :
 
 ./TEnrich -h        (or --help)
 
 _________________________________________________________________________________
-______Description________________________________________________________________
+##Description
 
         The script was made to work on large number of bed files
         at once. Therefore the input should be a path to a dire-
@@ -64,8 +69,9 @@ ______Description_______________________________________________________________
         genome size for the enrichment can be changed (Warning:
         don't put scientific notation, e.g. 2.7e9 won't work). 
 
-Usage :
-./TEnrich --bed_dir         path/to/dirWithBeds                     [required]
+####Usage :
+          ./TEnrich 
+          --bed_dir         path/to/dirWithBeds                     [required]
           --out_dir         path/to/dirOut                          [required] 
           --genome_size     size_genome                             [optional] 
           --comp_sense      'te_inter_peak','peak_inter_te','auto'  [optional] 
@@ -78,7 +84,8 @@ Usage :
           --help (-h)         
           --version (-v) 
   
-     --bed_dir path/to/dirWithBeds [string] : every file with *.bed ext in the
+    ####--bed_dir 
+    path/to/dirWithBeds [string] : every file with *.bed ext in the
     folder will be used
 
      --out_dir path/to/dirOut [string] : The folder is created and results written
@@ -119,7 +126,7 @@ Usage :
     'db/hg19_TE_repmask_LTRm_s_20140131.bed'  
 
 _________________________________________________________________________________
-______TE database________________________________________________________________
+______TE database
 
 The database of Transposable elements used by the script
 is a curated version of Repeatmasker v.???, where LTRs
@@ -127,7 +134,7 @@ were merged into their LTR-int-LTR version by Julien Duc
 at the EPFL. 
 
 _________________________________________________________________________________
-______Working with another species than hg19_____________________________________
+______Working with another species than hg19
 
 ### Work with another Species than hg19 ###
 exemple for danRer10 :
