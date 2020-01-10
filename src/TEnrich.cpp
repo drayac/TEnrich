@@ -25,11 +25,8 @@
 int main(int argc, char* argv[])
 {
     // Some constant values hard-coded
-    const int LINE_MAX_SIZE = 200;
-    const double FDR = 0.05 ;
-    const int te_data_size = 4570939 ;
-    bool print_padj = 1 ;
-    int bed_n_field ; 
+    const int LINE_MAX_SIZE = 200;      const double FDR = 0.05 ;
+    const int te_data_size = 4570939 ;  bool print_padj = 1 ;
     std::string this_dir = <FOLDER_INSTALL> ;
     std::string version  = <VERSION> ; 
     
@@ -38,9 +35,9 @@ int main(int argc, char* argv[])
     // Get help
     get_help(std::string(argv[1]), argc, version) ;
 
-    // Get / initialize parameters
+    // Get and initialize parameters
     std::vector <std::string> input = get_parameters(argc,argv) ; 
-    std::string bed_path = input[0] , out_path = input[1] , comparison_direction = input[3] , comparison_type = input[4] , print_padj_str = input[5] , ref_file = input[6] , ref_file_fam = input[7] , ref_file_clust = input[8] , te_data = input[9] , single_file = input[10] ;
+    std::string bed_path = input[0] , out_path = input[1] , comparison_direction = input[3] , comparison_type = input[4] , print_padj_str = input[5] , ref_file = input[6] , ref_file_fam = input[7] , te_data = input[9] , single_file = input[10] ;
     long int size_hg19 = std::stol(input[2]) ; 
     int idx_col = std::stoi(input[11]) ;
     if ( print_padj_str.compare("false") == 0 ){ print_padj = 0 ; }
@@ -55,239 +52,125 @@ int main(int argc, char* argv[])
     system("mkdir -p temp_TEnrich") ;
  
     // Creating output folders
-    create_folder(out_path,"summary_bed") ; create_folder(out_path,"summary_te_fam") ;
-    create_folder(out_path,"summary_te_subfam") ; create_folder(out_path,"summary_te_clust") ;
+    create_folder(out_path,"summary_bed") ;         create_folder(out_path,"summary_te_fam") ;
+    create_folder(out_path,"summary_te_subfam") ;  
 
     // Check TE data number of fields
     std::cout << "Checking that TE data is ok\n" ;
     int expect_n_fields = 9 ;
     check_te_database(te_data, expect_n_fields ) ;
    
-    exit(EXIT_FAILURE) ;
-
     // Initialize Hash Tables
-    std::unordered_map<std::string, int> peak_count , peak_count_on_te , peak_len , peak_total_bp , te_inter_peak , te_inter_peak_unique, teFam_inter_peak, teFam_inter_peak_unique, teClust_inter_peak, teClust_inter_peak_unique ;
+    std::unordered_map<std::string, int> peak_count , peak_count_on_te , peak_count_on_te_unique, peak_len , peak_total_bp , te_inter_peak , te_inter_peak_unique, teFam_inter_peak, teFam_inter_peak_unique ; 
     std::unordered_map<std::string, std::string> summary_peak_line ;
 
+
+    //////////////////////////////////////////
+    // CONCATENATE MULTIPLE FILE WITH A TAG //
+    //////////////////////////////////////////
+    
     std::string concat_bed = "temp_TEnrich/concat_all.bed" ;
     std::string list_files = "temp_TEnrich/temp.list_files.txt" ;
-    if ( bed_path.compare("empty") != 0 ){
-        // CONCATENATE MULTIPLE FILE WITH A TAG
-        std::cout << "Concatening all bed files...\n" << std::endl ;
-        // make a list of files in the folder given as argv[1]
-        std::stringstream ls_cmd ;
-        ls_cmd << "ls -1 "<< bed_path << "/* > " << list_files ;
-        system(&(ls_cmd.str()[0])) ;
-        std::ifstream list_f(list_files);
-
-        if (this_is_empty(list_f)){
-            std::cout << "Problem while opening " << list_files << ", exiting...\n" ;
-            exit (EXIT_FAILURE) ;
-        }
-        if (list_f.is_open()) {
-            std::string line;
-            while (getline(list_f, line)) {
-                // initialize peak variables
-                std::string tag_name = remove_ext(base_name(line)) ;
-                // local variables
-                int peak_n = 0 ; long long total_length = 0 ; int prev_bed_n_field ; bool first_check = 1 ;
-
-                std::ifstream this_bed(line) ;
-                if (this_is_empty(this_bed)){
-                    std::cout << "Problem while opening " << line << ", exiting...\n" ;
-                    exit (EXIT_FAILURE) ;
-                }
-                if (this_bed.is_open()) {
-
-                    std::string line_bed;
-                    std::ofstream my_out ;
-                    my_out.open (concat_bed, std::fstream::app) ;
-
-                    while (getline(this_bed, line_bed)) {
-                        // Write line in concat_bed file
-                        line_bed.erase(std::remove(line_bed.begin(), line_bed.end(), '\n'), line_bed.end());
-                        //my_out << line_bed << "\t" << tag_name << std::endl ;
-
-                        // Get fields to calculate peak length
-                        std::istringstream iss(line_bed) ;
-                        std::vector <std::string> fields ;
-                        std::string field ;
-                        while(std::getline(iss, field, '\t')){ 
-                            fields.push_back(field);
-                        }
-
-                        // Check bed fields numbers
-                        bed_n_field = fields.size() ;
-                        if ( first_check ){ prev_bed_n_field = bed_n_field ; first_check = 0 ; }
-                        prev_bed_n_field = bed_n_field ;
-
-                        // WRITE OUTPUT 3 FIELD BED
-                        my_out << fields[0] << "\t" << fields[1] << "\t" << fields[2] << "\t" << tag_name << "\n" ;
-
-                        // Record peak length
-                        int peak_length = std::stoi(fields[2]) - std::stoi(fields[1]) ;
-                        total_length += peak_length  ;
-                        peak_n += 1 ;
-                    }
-                    my_out.close() ;
-                }
-                // calculate peak stats
-                int peak_average_length = total_length / peak_n ;
-                double peak_genome_ratio = double(total_length) / double(size_hg19) ;
-                double peak_total_Mbp = double(total_length) / 1e6 ;
-
-                // add stats to map hash 
-                peak_count.insert({tag_name, peak_n}) ;   
-                peak_len.insert({tag_name, peak_average_length}) ;
-                peak_total_bp.insert({tag_name, total_length}) ;
-
-                // insert to summary peak
-                std::string summary_line = tag_name + "\t" + std::to_string(peak_n) + "\t" + std::to_string(peak_average_length) + "\t" + std::to_string(peak_total_Mbp) + "\t" + std::to_string(peak_genome_ratio) ;
-                summary_peak_line.insert({tag_name, summary_line }) ;
-
-                std::cout << tag_name << " has " << peak_n << " peaks with an average size of " << peak_average_length << " bp. Total length = " << total_length << "\n" ;
-            }
-            list_f.close();
-        }
+    
+    if ( bed_path.compare("empty") != 0 ){ // only if multiple files are present
+        concat_bed_files(bed_path, list_files, concat_bed, peak_count, peak_len, peak_total_bp, summary_peak_line, size_hg19) ;
         idx_col = 12 ;
-    }
-    else
-    {
+    } else { // if working with a single-file, consider it as our concatenated bed
         concat_bed = single_file ;
         idx_col += 9 ;
     }
 
-    
-    // Intersect concat_bed with te_data file
-    std::cout << "\nIntersect with TE database...\n" << std::endl ;
-    std::stringstream bedtools_cmd ;
+
+    ////////////////////////////////////////////
+    // INTERSECT concat_bed with te_data file //
+    ////////////////////////////////////////////
+   
+    // bedtools intersection  
     std::string inter_bed_path = "temp_TEnrich/temp.out.bed" ;
-    bedtools_cmd << "bedtools intersect -a "<< te_data << " -b "<< concat_bed << " -f 0.5 -F 0.5 -e -wa -wb | sort -k1,1 -k2,2n -k9,9 -k10,10n > " << inter_bed_path ;
-    system(&(bedtools_cmd.str()[0])) ; 
+    bedtools_intersect( "-f 0.5 -F 0.5 -e -wa -wb", // bedtools options
+                        "sort -k1,1 -k2,2n -k9,9 -k10,10n", // sorting option
+                        te_data, inter_bed_path, concat_bed) ;
 
-    // open list_files to write sample names (only used if single_file option provided) 
-    std::ofstream fake_list ; 
-    std::unordered_map<std::string, int> save_fake_list ;
-    if ( bed_path.compare("empty") == 0 ){ fake_list.open(list_files, std::fstream::app) ; }
-    
     // Parse intersect and get all counts
-    std::cout << "Counting peaks vs TE overlaps...\n" << std::endl ;
-    std::ifstream inter_bed(inter_bed_path);
-    if (this_is_empty(inter_bed)){
-        std::cout << "Problem while opening " << inter_bed_path << ", exiting...\n" ;
-        exit (EXIT_FAILURE) ;
-    }
-    if (inter_bed.is_open()) {
-        std::string line, prev_te, prev_peak, prev_key , prev_key_fam, prev_key_clust , prev_tag_name ;
-        while (getline(inter_bed, line)) { 
-            std::istringstream iss(line) ;
-            std::vector <std::string> fields ;
-            std::string field ;
-            while(std::getline(iss, field, '\t')){ 
-                fields.push_back(field);
-            }
+    std::unordered_map<std::string, int> save_fake_list ; // fake list used with single-file
+    parse_intersect(inter_bed_path, bed_path, save_fake_list, idx_col,
+                    te_inter_peak , teFam_inter_peak, 
+                    te_inter_peak_unique, teFam_inter_peak_unique,
+                    peak_count_on_te) ;
+
+    // Resort by peaks to count te_in_peak 
+    std::unordered_map<std::string, int> peak_inter_teFam_unique, peak_inter_te_unique ;
+    std::string inter_bed_sortPeaks = "temp_TEnrich/temp.out.sortPeaks.bed" ;
+    sort_peaks("sort -k9,9 -k10,10n -k13", inter_bed_path, inter_bed_sortPeaks) ;
+    parse_intersect_sortPeaks( inter_bed_path,    inter_bed_sortPeaks, idx_col, 
+                                peak_count_on_te, peak_count_on_te_unique,
+                                peak_inter_teFam_unique,peak_inter_te_unique , 
+                                list_files ) ;
+
     
-            int total_field = 8 ;
-            std::string tag_name = fields[idx_col] ;
-            if ( bed_path.compare("empty") == 0 ){
-                if ( idx_col < 0 ){
-                    tag_name = fields[0] + ":" + fields[1] + "-" + fields[2] ;
-                    if ( save_fake_list.find(tag_name) == save_fake_list.end() ){
-                        fake_list << tag_name << "\n" ;
-                        save_fake_list.insert({tag_name, 1}) ;
-                    }
-                }
-                else
-                {
-                    tag_name = fields[idx_col] ;
-                    if ( save_fake_list.find(tag_name) == save_fake_list.end() ){
-                        fake_list << tag_name << "\n" ;
-                        save_fake_list.insert({tag_name, 1}) ;
-                    }
-                }
-            }
-            else
-            {
-                tag_name = fields[idx_col] ;
-            }
-
-            std::string key = fields[7] + "_" + tag_name ;
-            std::string key_fam = fields[6] + "_" + tag_name ;
-            std::string this_te = fields[0] + fields[1] + fields[2] ;
-            std::string this_peak = fields[total_field+1] + fields[total_field+2] + fields[total_field+3] ; 
-            te_inter_peak[key]++ ; teFam_inter_peak[key_fam]++ ; 
-            
-            std::string clust = fields[8] ;
-            std::string key_clust = clust + "_" + tag_name ;
-            teClust_inter_peak[key_clust]++ ;
-
-            peak_count_on_te[tag_name]++ ;
-
-            if ( this_te.compare(prev_te) != 0 ){
-                te_inter_peak_unique[prev_key]++ ; teFam_inter_peak_unique[prev_key_fam]++ ;
-                teClust_inter_peak_unique[prev_key_clust]++ ;
-            }
-            prev_te = this_te ; prev_peak = this_peak ; 
-            prev_key = key ; prev_key_fam = key_fam ; 
-            prev_tag_name = tag_name ;
-            prev_key_clust = key_clust ; 
-        }
-    }
-    inter_bed.close() ; fake_list.close() ;
-
-    // Get median / quantiles for subfam 
-
-
-    // Parse files and compute pval enrichments
-    // open matrix out
-    bool prhead_mat_all_best = 1 ; 
-    std::string matrix_path_all_best = out_path + "/matrix_padjBinomial_Subfam.txt" ;
-    bool prhead_mat_all_best_fam = 1 ; 
-    std::string matrix_fam = out_path + "/matrix_padjBinomial_Fam.txt" ;
-    bool prhead_mat_clust = 1 ;
-    std::string matrix_clust = out_path + "/matrix_padjBinomial_Clusters.txt" ;
+    ////////////////////////////////////////////
+    // COMPUTE ENRICHMENT BY SAMPLES          //
+    ////////////////////////////////////////////
+   
+    // initialize variables 
+    bool prhead_mat_all_best = 1, prhead_mat_all_best_fam = 1, prhead_summary_te  = 1 ;
+    std::string matrix_path_all_best = out_path + "/matrix_padjAlaBTFisher_Subfam.txt" ;
+    std::string matrix_fam = out_path + "/matrix_padjAlaBTFisher_Fam.txt" ;
+    std::string line_ref;
 
     // Create peak summary file
     std::string summary_bed_path = out_path + "/summary_bed.txt" ;
     std::ofstream summary_bed ; 
     summary_bed.open(summary_bed_path, std::fstream::app) ;
 
-    // Initialize bool to print summary_fam/subfam header 
-    bool prhead_summary_te  = 1 ;
-
-    // print header 
+    // print summary header 
     summary_bed << "sample_name\tpeak.number\tpeak.average.size\tpeak.total.bp\tpeak.ratio.genome\tpeak.overlap.te\tpeak.ratio.overlap.te\n" ;
-   
+
     // Iterate over samples (list of files in input folder) 
     std::ifstream list_f2(list_files);
+
     if (this_is_empty(list_f2)){
         std::cout << "Problem while opening " << list_files << ", exiting...\n" ;
         exit (EXIT_FAILURE) ;
     }
     if (list_f2.is_open()) {
-        std::string line_ref;
+        
+        // Iterate over samples to compute enrichments
         while (getline(list_f2, line_ref)) {
             
             std::string tag_name = remove_ext(base_name(line_ref)) ;
             std::cout << "Enrichment analysis of " << tag_name << "\n" ;
             
             // getting peak stats
-            int mean_peaklen = peak_len[tag_name] , my_peak_count = peak_count[tag_name] , my_peak_count_on_te = peak_count_on_te[tag_name] , peak_tot_bp = peak_total_bp[tag_name] ;
+            int mean_peaklen = peak_len[tag_name] , my_peak_count = peak_count[tag_name] , my_peak_count_on_te_unique = peak_count_on_te_unique[tag_name] , peak_tot_bp = peak_total_bp[tag_name] ;
             double ratio_genome_peak = double(peak_tot_bp) / double(size_hg19) ;
             double peak_total_Mbp = double(peak_tot_bp) / 1000000 ;
-            double peak_ratio_on_te = double(my_peak_count_on_te) / double(my_peak_count) ; 
+            double peak_ratio_on_te = double(my_peak_count_on_te_unique) / double(my_peak_count) ; 
             
             // add info to peak summary 
             std::string peak_sum_line = summary_peak_line[tag_name] ;
-            summary_bed << peak_sum_line << "\t" << my_peak_count_on_te << "\t" << peak_ratio_on_te << "\n" ;
+            summary_bed << peak_sum_line << "\t" << my_peak_count_on_te_unique << "\t" << peak_ratio_on_te << "\n" ;
             // bool to print header of summmary files 
-            bool prhead_sum_all_best = 1, prhead_sum_all_best_fam = 1 , prhead_sum_clust = 1 ;
+            bool prhead_sum_all_best = 1, prhead_sum_all_best_fam = 1 ;
            
             //////////////////// 
-            /*  TE SUBFAM     */
+            //  TE SUBFAM     //
             ////////////////////
             
-            // Begin enrichment analysis for sample X 
+            // Begin enrichment analysis by SUBFAM 
+            enrichment_analysis("te_subfam",
+                                ref_file, size_hg19, comparison_type, tag_name,
+                                my_peak_count, my_peak_count_on_te_unique,
+                                peak_tot_bp, mean_peaklen, 
+                                comparison_direction, te_data_size,
+                                total_nonTE, total_nonTE_bp,
+                                nonTE_avg_size, nonTE_genome_ratio,
+                                matrix_path_all_best, out_path,
+                                print_padj, prhead_mat_all_best, 
+                                prhead_mat_all_best_fam, prhead_summary_te,
+                                peak_inter_te_unique, te_inter_peak_unique ) ;  
+            
+            /*
             std::ifstream ref_in(ref_file);
             if (this_is_empty(ref_in)){
                 std::cout << "Problem while opening " << ref_file << ", exiting...\n" ;
@@ -326,7 +209,7 @@ int main(int argc, char* argv[])
                     all_subfam_genome_ratio.push_back(ratio_genome_subfam);
 
                     // Calculation of the p-values for each 1-1 relation
-                    if (te_inter_peak.find(key) == te_inter_peak.end() || te_inter_peak[key] == 0){
+                    if (te_inter_peak_unique.find(key) == te_inter_peak.end() || te_inter_peak[key] == 0){
                         subfam_names.push_back (fields[0]) ; all_pvals.push_back (1.0) ;
                         all_pvals_alafisher.push_back (1.0) ; all_pvals_binomial.push_back (1.0) ;
                         all_pvals_rev.push_back (1.0) ; all_pvals_alafisher_rev.push_back (1.0) ;
@@ -336,20 +219,20 @@ int main(int argc, char* argv[])
                     else
                     {
                         ////////////////////////////////////// 
-                        /* PVAL ENRICHMENT PEAKs AMONG TEs  */
+                        // PVAL ENRICHMENT PEAKs AMONG TEs  //
                         //////////////////////////////////////
                         
                         // Regular HyperGeometric
-                        long long a_11 = te_inter_peak[key] ;
+                        long long a_11 = peak_inter_te_unique[key] ; //te_inter_peak[key] ;
                         long long a_12 = MAX(0L,n_subfam - a_11) ;
-                        long long a_21 = MAX(0L,my_peak_count_on_te - a_11) ;
+                        long long a_21 = MAX(0L,my_peak_count_on_te_unique - a_11) ;
                         long long a_22 = te_data_size - a_11 - a_12 - a_21 ;
                         double pval = fisher_exact(a_11, a_12, a_21, a_22, comparison_type) ;
                         all_pvals.push_back (pval) ;
 
                         // HyperGeometric with genome occupency - 'ala bedtools fisher'
                         int total_average = mean_peaklen + avg_subfam_size ;
-                        long long b_11 = te_inter_peak[key] ;
+                        long long b_11 = peak_inter_te_unique[key] ; //te_inter_peak[key] ;
                         long long b_12 = MAX(a_12, n_subfam - b_11 ) ;
                         long long b_21 = MAX(0L,my_peak_count - b_11) ;
                         long long b_22 = MAX( int(double(size_hg19) / double(total_average)) - b_11 - b_21 - b_12, 1 )  ;
@@ -358,7 +241,7 @@ int main(int argc, char* argv[])
 
                         // Binomial exact test with genome ratio as p
                         int n_tot = my_peak_count ; // number of trials
-                        int X_obs = te_inter_peak[key] ;
+                        int X_obs = peak_inter_te_unique[key] ; //te_inter_peak[key] ;
                         double p_obs = double( mean_peaklen*X_obs ) / double(total_bp_length_subfam) ;
                         double q_obs = 1 - p_obs ;
                         double p_exp = double(total_bp_length_subfam) / double(size_hg19) ; // Prob to touch subfam by random
@@ -366,18 +249,19 @@ int main(int argc, char* argv[])
                         all_pvals_binomial.push_back(pval_binomial) ;
 
                         //////////////////////////////////////
-                        /* PVAL ENRICHMENT TEs AMONG PEAKs  */
+                        // PVAL ENRICHMENT TEs AMONG PEAKs  //
                         //////////////////////////////////////
 
                         // Regular HyperGeometric
                         long long ar_11 = te_inter_peak_unique[key] ;
                         long long ar_12 = MAX(0L,n_subfam - ar_11) ;
-                        long long ar_21 = MAX(0L,my_peak_count_on_te - ar_11) ;
+                        long long ar_21 = MAX(0L,my_peak_count_on_te_unique - ar_11) ;
                         long long ar_22 = te_data_size - ar_11 - ar_12 - ar_21 ;
                         double pval_rev = fisher_exact(ar_11, ar_12, ar_21, ar_22, comparison_type) ;
                         all_pvals_rev.push_back (pval_rev) ;
-                        if ( mean_peaklen > avg_subfam_size || comparison_direction.compare("te_in_peak") == 0 ) all_pvals_best.push_back (pval_rev) ;
-                        if ( mean_peaklen <= avg_subfam_size || comparison_direction.compare("peak_in_te") == 0 ) all_pvals_best.push_back (pval) ;
+
+                        add_pval_auto(  comparison_direction, mean_peaklen, avg_subfam_size, 
+                                        all_pvals_best, pval, pval_rev) ;
 
                         // HyperGeometric with genome occupency - 'ala bedtools fisher'
                         total_average = avg_subfam_size ;
@@ -387,25 +271,9 @@ int main(int argc, char* argv[])
                         long long br_22 = MAX( int(double(size_hg19) / double(total_average)) - br_11 - br_21 - br_12, 1)  ;
                         double pval_alafisher_rev = fisher_exact(br_11, br_12, br_21, b_22, comparison_type) ;
                         all_pvals_alafisher_rev.push_back (pval_alafisher_rev) ;
-
-                        if ( comparison_direction.compare("auto") ){
-                            // in auto mode, compute the smallest against the largest
-                            if ( mean_peaklen > avg_subfam_size ){
-                                all_pvals_alafisher_best.push_back (pval_alafisher_rev) ;
-                            }
-                            if ( mean_peaklen <= avg_subfam_size ){
-                                all_pvals_alafisher_best.push_back (pval_alafisher) ;
-                            }
-                        }
-                        else
-                        {
-                            if ( comparison_direction.compare("te_in_peak") == 0 ){
-                                all_pvals_alafisher_best.push_back (pval_alafisher_rev) ;
-                            }
-                            else if ( comparison_direction.compare("peak_in_te") == 0 ){
-                                all_pvals_alafisher_best.push_back (pval_alafisher) ;
-                            }
-                        }
+                        
+                        add_pval_auto(  comparison_direction, mean_peaklen, avg_subfam_size, 
+                                        all_pvals_alafisher_best, pval_alafisher, pval_alafisher_rev) ; 
                         
                         // Binomial exact test with genome ratio as p 
                         n_tot = n_subfam ; // number of trials
@@ -413,15 +281,16 @@ int main(int argc, char* argv[])
                         p_exp = ratio_genome_peak ; // Prob to touch subfam by random
                         double pval_binomial_rev = pbinom(X_obs-1, n_tot, p_exp, comparison_type) ;
                         all_pvals_binomial_rev.push_back(pval_binomial_rev) ;
-                        if ( mean_peaklen > avg_subfam_size || comparison_direction.compare("te_in_peak") == 0 ) all_pvals_binomial_best.push_back (pval_binomial_rev) ;
-                        if ( mean_peaklen <= avg_subfam_size || comparison_direction.compare("peak_in_te") == 0 ) all_pvals_binomial_best.push_back (pval_binomial) ;
                         subfam_names.push_back (fields[0]) ;
+
+                        add_pval_auto(  comparison_direction, mean_peaklen, avg_subfam_size, 
+                                        all_pvals_binomial_best, pval_binomial, pval_binomial_rev) ;
                     }
                 }
 
                 // Getting pval for nonTE
                 subfam_names.push_back ("nonTE") ;
-                int nonTE_intersect = my_peak_count - my_peak_count_on_te ;
+                int nonTE_intersect = my_peak_count - my_peak_count_on_te_unique ;
                 // reg hypergeometric test
                 int nonTE_a12 = total_nonTE - nonTE_intersect ;
                 int nonTE_a21 = my_peak_count - nonTE_intersect ;
@@ -462,19 +331,33 @@ int main(int argc, char* argv[])
                         padj_hygm_reg, padj_hygm_alaFish, padj_hygm_binom,
                         &subfam_names, &all_te_inter_peak_unique,
                         &all_total_subfam,  &all_te_inter_peak,
-                        my_peak_count_on_te, my_peak_count, &all_total_bp_subfam,
+                        my_peak_count_on_te_unique, my_peak_count, &all_total_bp_subfam,
                         &all_avg_subfam_size, &all_subfam_genome_ratio,
                         peak_total_Mbp, peak_ratio_on_te, ratio_genome_peak,
                         "te_subfam", &prhead_summary_te, out_path ) ;
             }
             ref_in.close() ;
-
-
+            */
 
             ///////////////// 
             /*  TE FAM     */
             /////////////////
+            
+            // Begin enrichment analysis by FAM 
+            enrichment_analysis("te_fam",
+                                ref_file_fam, size_hg19, comparison_type, tag_name,
+                                my_peak_count, my_peak_count_on_te_unique,
+                                peak_tot_bp, mean_peaklen, 
+                                comparison_direction, te_data_size,
+                                total_nonTE, total_nonTE_bp,
+                                nonTE_avg_size, nonTE_genome_ratio,
+                                matrix_fam, out_path,
+                                print_padj, prhead_mat_all_best, 
+                                prhead_mat_all_best_fam, prhead_summary_te,
+                                peak_inter_te_unique, te_inter_peak_unique ) ;
+
             // Begin enrichment analysis for sample X 
+            /*
             std::ifstream ref_in_fam(ref_file_fam);
             if (this_is_empty(ref_in_fam)){
                 std::cout << "Problem while opening " << ref_file_fam << ", exiting...\n" ;
@@ -524,20 +407,20 @@ int main(int argc, char* argv[])
                     else
                     {
                         ////////////////////////////////////// 
-                        /* PVAL ENRICHMENT PEAKs AMONG TEs  */
+                        // PVAL ENRICHMENT PEAKs AMONG TEs  //
                         //////////////////////////////////////
                         
                         // Regular HyperGeometric
-                        int a_11 = teFam_inter_peak[key] ;
+                        int a_11 = peak_inter_teFam_unique[key] ;//teFam_inter_peak[key] ;
                         int a_12 = MAX(0L,n_fam - a_11) ;
-                        int a_21 = MAX(0L,my_peak_count_on_te - a_11) ;
+                        int a_21 = MAX(0L,my_peak_count_on_te_unique - a_11) ;
                         int a_22 = te_data_size - a_11 - a_12 - a_21 ;
                         double pval = fisher_exact(a_11, a_12, a_21, a_22, comparison_type) ;
                         all_pvals.push_back (pval) ;
 
                         // HyperGeometric with genome occupency - 'ala bedtools fisher'
                         int total_average = mean_peaklen + avg_fam_size ;
-                        int b_11 = teFam_inter_peak[key] ;
+                        int b_11 = peak_inter_teFam_unique[key] ; //teFam_inter_peak[key] ;
                         int b_12 = MAX(a_12, n_fam - b_11 ) ;
                         int b_21 = MAX(0L,my_peak_count - b_11) ;
                         int b_22 = MAX( int(double(size_hg19) / double(total_average)) - b_11 - b_21 - b_12, 1 )  ;
@@ -546,7 +429,7 @@ int main(int argc, char* argv[])
 
                         // Binomial exact test with genome ratio as p
                         int n_tot = my_peak_count ; // number of trials
-                        int X_obs = teFam_inter_peak[key] ;
+                        int X_obs = peak_inter_teFam_unique[key] ; //teFam_inter_peak[key] ;
                         double p_obs = double( mean_peaklen*X_obs ) / double(total_bp_length_fam) ;
                         double q_obs = 1 - p_obs ;
                         double p_exp = double(total_bp_length_fam) / double(size_hg19) ; // Prob to touch fam by random
@@ -554,7 +437,7 @@ int main(int argc, char* argv[])
                         all_pvals_binomial.push_back(pval_binomial) ;
 
                         //////////////////////////////////////
-                        /* PVAL ENRICHMENT TEs AMONG PEAKs  */
+                        // PVAL ENRICHMENT TEs AMONG PEAKs  //
                         //////////////////////////////////////
 
                         // Regular HyperGeometric
@@ -564,8 +447,9 @@ int main(int argc, char* argv[])
                         int ar_22 = te_data_size - ar_11 - ar_12 - ar_21 ;
                         double pval_rev = fisher_exact(ar_11, ar_12, ar_21, ar_22, comparison_type) ;
                         all_pvals_rev.push_back (pval_rev) ;
-                        if ( mean_peaklen > avg_fam_size || comparison_direction.compare("te_in_peak") == 0 ) all_pvals_best.push_back (pval_rev) ;
-                        if ( mean_peaklen <= avg_fam_size || comparison_direction.compare("peak_in_te") == 0 ) all_pvals_best.push_back (pval) ;
+
+                        add_pval_auto(  comparison_direction, mean_peaklen, avg_fam_size, 
+                                        all_pvals_best, pval, pval_rev) ;
 
                         // HyperGeometric with genome occupency - 'ala bedtools fisher'
                         total_average = avg_fam_size ;
@@ -575,27 +459,27 @@ int main(int argc, char* argv[])
                         int br_22 = MAX( int(double(size_hg19) / double(total_average)) - br_11 - br_21 - br_12, 1)  ;
                         double pval_alafisher_rev = fisher_exact(br_11, br_12, br_21, b_22, comparison_type) ;
                         all_pvals_alafisher_rev.push_back (pval_alafisher_rev) ;
-                        if ( mean_peaklen > avg_fam_size || comparison_direction.compare("te_in_peak") == 0 ) all_pvals_alafisher_best.push_back (pval_alafisher_rev) ;
-                        if ( mean_peaklen <= avg_fam_size || comparison_direction.compare("peak_in_te") == 0 ) all_pvals_alafisher_best.push_back (pval_alafisher) ;
-                        
+
+                        add_pval_auto(  comparison_direction, mean_peaklen, avg_fam_size, 
+                                        all_pvals_alafisher_best, pval_alafisher, pval_alafisher_rev) ; 
+
                         // Binomial exact test with genome ratio as p 
                         n_tot = n_fam ; // number of trials
                         X_obs = teFam_inter_peak_unique[key] ;
                         p_exp = ratio_genome_peak ; // Prob to touch peak by random
                         double pval_binomial_rev = pbinom(X_obs-1, n_tot, p_exp, comparison_type) ;
                         all_pvals_binomial_rev.push_back(pval_binomial_rev) ;
-                        if ( mean_peaklen > avg_fam_size || comparison_direction.compare("te_in_peak") == 0 ) all_pvals_binomial_best.push_back (pval_binomial_rev) ;
-                        if ( mean_peaklen <= avg_fam_size || comparison_direction.compare("peak_in_te") == 0 ) all_pvals_binomial_best.push_back (pval_binomial) ;
-                        
+
+                        add_pval_auto(  comparison_direction, mean_peaklen, avg_fam_size, 
+                                        all_pvals_binomial_best, pval_binomial, pval_binomial_rev) ;
+
                         fam_names.push_back (fields[0]) ;
                     }
                 }
 
                 // Getting pval for nonTE
                 fam_names.push_back ("nonTE") ;
-                //int total_nonTE = 4570939 ; // we estimate the number of nonTE interval ~= TE interval
-                //int total_nonTE_bp = 1260181506 ; // size_hg19 - genome span of TE   
-                int nonTE_intersect = my_peak_count - my_peak_count_on_te ;
+                int nonTE_intersect = my_peak_count - my_peak_count_on_te_unique ;
 
                 // reg hypergeometric test
                 int nonTE_a12 = total_nonTE - nonTE_intersect ;
@@ -637,18 +521,21 @@ int main(int argc, char* argv[])
                         padj_hygm_reg_fam, padj_hygm_alaFish_fam, padj_hygm_binom_fam,
                         &fam_names, &all_te_inter_peak_unique,
                         &all_total_fam,  &all_te_inter_peak,
-                        my_peak_count_on_te, my_peak_count, &all_total_bp_fam,
+                        my_peak_count_on_te_unique, my_peak_count, &all_total_bp_fam,
                         &all_avg_fam_size, &all_fam_genome_ratio,
                         peak_total_Mbp, peak_ratio_on_te, ratio_genome_peak,
                         "te_fam", &prhead_summary_te, out_path ) ;
             }
             ref_in_fam.close() ;
+            */
             prhead_summary_te = 0 ;
         }
+        list_f2.close() ;
+        
+
+        summary_bed.close() ;
     }
-    list_f2.close() ;
-    summary_bed.close() ;
 
     // Cleaning temp directory 
-    system("rm -rf temp_TEnrich/") ;
+    //system("rm -rf temp_TEnrich/") ;
 }

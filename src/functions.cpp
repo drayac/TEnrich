@@ -10,6 +10,8 @@
 #include <unordered_map>
 #include <math.h>
 #include <iomanip>
+#include "binom_pval.hpp"
+#include "fisher_pval.hpp"
 #include "functions.hpp"
 #include <algorithm>
 
@@ -21,161 +23,79 @@
 std::string this_dir = <FOLDER_INSTALL> ;
 std::string version  = <VERSION> ;
 
+void add_param(std::string &var, std::string name, int &i, int c_argc, char *c_argv[]){
+    if (std::string(c_argv[i]) == name) {
+        if (i + 1 < c_argc) { // Make sure we aren't at the end of argv!
+            var = c_argv[i + 1]; 
+            i++ ; // Increment 'i' so we don't get the argument as the next argv[i].
+        } else { 
+            std::cerr << name << " option requires one argument." << std::endl;
+            exit (EXIT_FAILURE) ;
+        }
+    }
+}
+
 std::vector <std::string> get_parameters(int c_argc, char *c_argv[]){
     if (c_argc < 1) {
         std::cerr << "Not enough parameters were given, exiting ... " << std::endl;
         exit (EXIT_FAILURE) ;
     }
+    // initialize default values
     std::vector <std::string> named_params ;
-    std::string bed_dir = "empty", out_dir = "empty", size_genome = "3088269832" ;
+    std::string bed_dir = "empty", out_dir = "empty", genome_size = "3088269832" ;
     std::string padj = "true" , comp_sense = "auto", stat_test_type = "greater" ;
     std::string ref_subfam = this_dir + "/db/Subfam_ref_TE.txt" ;
     std::string ref_fam = this_dir + "/db/Fam_ref_TE.txt" ;
-    std::string ref_clust = this_dir + "/db/Clusters_ref_TE.txt" ;
+    std::string ref_cluster = this_dir + "/db/Clusters_ref_TE.txt" ;
     std::string te_database = this_dir + "/db/hg19_TE_repmask_LTRm_s_20140131.bed.gz" ;
     std::string single_file = "empty" , idx_col = "-1" ;
     std::string destination ; 
     int i ;
     for (i = 1; i < c_argc; ++i) {
         std::string this_param = std::string(c_argv[i]) ;
-        if (std::string(c_argv[i]) == "--bed_dir") {
-            if (i + 1 < c_argc) { // Make sure we aren't at the end of argv!
-                 bed_dir = c_argv[i + 1]; i++ ; // Increment 'i' so we don't get the argument as the next argv[i].
-            } else { 
-                std::cerr << "--bed_dir option requires one argument." << std::endl;
-                exit (EXIT_FAILURE) ;
-            }
-        }
-        if (std::string(c_argv[i]) == "--out_dir") {
-            if (i + 1 < c_argc) { 
-                out_dir = c_argv[i + 1]; i++ ;
-            } else { 
-                std::cerr << "--out_dir option requires one argument." << std::endl;
-                exit (EXIT_FAILURE) ;
-            }
-        }
-       if (std::string(c_argv[i]) == "--genome_size") {
-            if (i + 1 < c_argc) { 
-                size_genome = c_argv[i + 1]; i++ ; 
-            } else { 
-                std::cerr << "--genome_size option requires one argument." << std::endl;
-                exit (EXIT_FAILURE) ;
-            }
-        }
-        if (std::string(c_argv[i]) == "--comp_sense") {
-            if (i + 1 < c_argc) { 
-                comp_sense = c_argv[i + 1]; i++ ; 
-            } else { 
-                std::cerr << "--comp_sense option requires one argument." << std::endl;
-                exit (EXIT_FAILURE) ;
-            }
-        }
-        if (std::string(c_argv[i]) == "--stat_test_type") {
-            if (i + 1 < c_argc) { 
-                stat_test_type = c_argv[i + 1]; i++ ; 
-            } else { 
-                std::cerr << "--stat_test_type option requires one argument." << std::endl;
-                exit (EXIT_FAILURE) ;
-            }
-        } 
-        if (std::string(c_argv[i]) == "--padj") {
-            if (i + 1 < c_argc) { 
-                padj = c_argv[i + 1]; i++ ; 
-            } else { 
-                std::cerr << "--padj option requires one argument." << std::endl;
-                exit (EXIT_FAILURE) ;
-            }
-        }
-        if (std::string(c_argv[i]) == "--ref_subfam") {
-            if (i + 1 < c_argc) { 
-                ref_subfam = c_argv[i + 1]; i++ ; 
-            } else { 
-                std::cerr << "--ref_subfam option requires one argument." << std::endl;
-                exit (EXIT_FAILURE) ;
-            }
-        }
-        if (std::string(c_argv[i]) == "--ref_fam") {
-            if (i + 1 < c_argc) { 
-                ref_fam = c_argv[i + 1]; i++ ; 
-            } else { 
-                std::cerr << "--ref_fam option requires one argument." << std::endl;
-                exit (EXIT_FAILURE) ;
-            }
-        }
-        if (std::string(c_argv[i]) == "--ref_cluster") {
-            if (i + 1 < c_argc) { 
-                ref_clust = c_argv[i + 1]; i++ ; 
-            } else { 
-                std::cerr << "--ref_cluster option requires one argument." << std::endl;
-                exit (EXIT_FAILURE) ;
-            }
-        }
-        if (std::string(c_argv[i]) == "--te_database") {
-            if (i + 1 < c_argc) { 
-                te_database = c_argv[i + 1]; i++ ; 
-            } else { 
-                std::cerr << "--padj option requires one argument." << std::endl;
-                exit (EXIT_FAILURE) ;
-            }
-        }
-        if (std::string(c_argv[i]) == "--single_file") {
-            if (i + 1 < c_argc) { 
-                single_file = c_argv[i + 1]; i++ ; 
-            } else { 
-                std::cerr << "--single_file option requires one argument." << std::endl;
-                exit (EXIT_FAILURE) ;
-            }
-        }
-        if (std::string(c_argv[i]) == "--idx_col") {
-            if (i + 1 < c_argc) { 
-                idx_col = c_argv[i + 1]; i++ ; 
-            } else { 
-                std::cerr << "--idx_col option requires one argument." << std::endl;
-                exit (EXIT_FAILURE) ;
-            }
-        }
+        add_param(bed_dir,      "--bed_dir",    i,  c_argc, c_argv) ;
+        add_param(out_dir,      "--out_dir",    i,  c_argc, c_argv) ;
+        add_param(genome_size,  "--genome_size",i,  c_argc, c_argv) ;
+        add_param(comp_sense,   "--comp_sense", i,  c_argc, c_argv) ;
+        add_param(stat_test_type,"--stat_test_type",i,c_argc,c_argv) ;
+        add_param(padj,         "--padj",       i,  c_argc, c_argv) ;
+        add_param(ref_subfam,   "--ref_subfam", i,  c_argc, c_argv) ;
+        add_param(ref_fam,      "--ref_fam",    i,  c_argc, c_argv) ;
+        add_param(ref_cluster,  "--ref_cluster",i,  c_argc, c_argv) ;
+        add_param(te_database,  "--te_database",i,  c_argc, c_argv) ;
+        add_param(single_file,  "--single_file",i,  c_argc, c_argv) ;
+        add_param(idx_col,      "--idx_col",    i,  c_argc, c_argv) ;
     }
+
+    // check formats of a few parameters
     if ( out_dir.compare("empty") == 0 ){
         std::cerr << "bed and out folder should be precised ... exiting\n" ;
         exit (EXIT_FAILURE) ;
     }
-    else
-    {
-        named_params.push_back(bed_dir) ; named_params.push_back(out_dir) ;
-    }
-
-    if ( is_digits(size_genome) ){
-        named_params.push_back(size_genome) ;
-    }
-    else
-    {
+    if ( not is_digits(genome_size) ){
         std::cerr << "size genome parameters should only contain digits !! exiting\n" ;
         exit (EXIT_FAILURE) ;
     }
-
     if ( comp_sense.compare("peak_in_te") != 0 && comp_sense.compare("te_in_peak") != 0 && comp_sense.compare("auto") != 0 ){
         std::cerr << "option comp_sense should be either 'peak_in_te', 'te_in_peak' or 'auto'. By default 'auto'. Exiting...\n\n" ; 
         exit ( EXIT_FAILURE ) ;
     }
-    named_params.push_back(comp_sense) ;
-    
     if ( stat_test_type.compare("greater") != 0 && stat_test_type.compare("less") != 0){
         std::cerr << "option stat_test_type should be either 'greater', 'less'. By default 'greater'. Exiting...\n\n" ; 
         exit ( EXIT_FAILURE ) ;
     }
-    named_params.push_back(stat_test_type) ;
-   
     if ( padj.compare("true") != 0 && padj.compare("false") != 0){
-        std::cerr << "option padj should be either 'true', 'false'. By default 'true'. Exiting...\n\n" ; 
+        std::cerr << "option padj should be 'true' or 'false'. By default 'true'. Exiting...\n\n" ; 
         exit ( EXIT_FAILURE ) ;
     }
 
-    named_params.push_back(padj) ;
-    named_params.push_back(ref_subfam) ;
-    named_params.push_back(ref_fam) ;
-    named_params.push_back(ref_clust) ;
-    named_params.push_back(te_database) ;
-    named_params.push_back(single_file) ;
+    // add params to output vector 
+    named_params.push_back(bed_dir) ;       named_params.push_back(out_dir) ;
+    named_params.push_back(genome_size) ;   named_params.push_back(comp_sense) ;
+    named_params.push_back(stat_test_type) ;
+    named_params.push_back(padj) ;          named_params.push_back(ref_subfam) ;
+    named_params.push_back(ref_fam) ;       named_params.push_back(ref_cluster) ;
+    named_params.push_back(te_database);    named_params.push_back(single_file) ;
     named_params.push_back(idx_col) ;
     
     return named_params ;
@@ -227,31 +147,6 @@ void print_help_line(std::string header, std::string long_line, int X, int Y){
     std::cout << std::endl ;
 }
 
-void print_help(int X, int Y){
-
-	std::cout << " __________         _     __ " << std::endl;
-	std::cout << "/_  __/ __/__  ____(_)___/ / " << std::endl;
-	std::cout << " / / / _// _ \\/ __/ / __/ _ \\" << std::endl;
-	std::cout << "/_/ /___/_//_/_/ /_/\\__/_//_/" << std::endl;
-	std::cout << "                        v." << version << std::endl << std::endl ;
-	std::cout << "Required options :                      " << std::endl ;
-	std::cout << "./TEnrich --bed_dir path/to/dirWithBeds \\\n" ;
-	std::cout << "          --out_dir path/to/dirOut \\\n" ;
-    std::cout << "\n" ;
-    print_help_line("--bed_dir path/to/dirWithBeds [string]","every file with *.bed ext in the folder will be used",X,Y) ;
-    print_help_line("--single_file path/to/bed_file [string]", "if this is given, it will use a single file instead of a group of bed file to do the enrichment (cancels --bed_dir option). If no index column is given, will perform the enrichment analysis on each single lines. Otherwise, it will group lines per name of the feature in the column designed by --idx_col option.", X, Y) ;
-    print_help_line("--idx_col [integer]","designate the index of the column (WARNING: 0-based index, which means index 0 is the first column, index 1 is the second, etc...) to be used in file given in --single_file to group lines.",X,Y) ;
-    print_help_line("--out_dir path/to/dirOut [string]","The folder is created and results written inside (WARNING: everything is cleaned before a new run)",X,Y) ;
-    print_help_line("--genome_size [integer/double]","Genome size over which the enrichment calculation will be done. Expect only digits. [OPTIONAL]. Default value : 3088269832",X,Y) ;
-    print_help_line("--comp_sense ['te_in_peak','peak_in_te','auto']","Defines the direction for the comparison, 'te_in_peak' or 'peak_in_te'. In 'auto' mode, it will take the enrichment of the smaller to the bigger [OPTIONAL]. Default value : 'auto'",X,Y) ;
-    print_help_line("--stat_test_type ['greater','less']","For statistical test done (Hypergeometric and Binomial), tell if we want the right tail ('greater') or the left tail ('less'), in other words the probability of having a equal or greater / equal or lower number of hits in the intersect. [OPTIONAL]. Default value : 'greater'",X,Y) ;
-    print_help_line("--padj ['true','false']","tell if you want to print the adjusted p-val (with the Benjamin-Hochsberg correction). [OPTIONAL]. Default value : 'true'",X,Y) ;
-    print_help_line("--ref_subfam [STRING]","subfam ref file obtained with utils/make_ref_file.pl. If not specified, the one for hg19 in db/ folder will be used [OPTIONAL]. Default value : 'db/Subfam_ref_TE.txt'",X,Y) ;
-    print_help_line("--ref_fam [STRING]","fam ref file obtained with utils/make_ref_file.pl. If not specified, the one for hg19 in db/ folder will be used [OPTIONAL]. Default value : 'db/Fam_ref_TE.txt'",X,Y) ;
-    print_help_line("--te_database [STRING]","database of TE used to make the intersection. Should be in bed format, as returned by utils/convert_repeatmasker.sh. By default, uses hg19 with LTR merged by J.Duc. [OPTIONAL]. Default value : 'db/hg19_TE_repmask_LTRm_s_20140131.bed",X,Y) ; 
-
-	exit (EXIT_FAILURE) ;
-}
 
 void check_te_database( std::string te_data_ziped, int n_expect_fields){
     // gzip and head first 1k line of te_database
@@ -308,7 +203,7 @@ bool exists (const std::string& name1) {
 
 void check_folder (const std::string& dir) {
     if ( exists(dir) ){
-        std::cout << "Directory exists, beginning process..." << std::endl ;
+        //std::cout << "Directory exists, beginning process..." << std::endl ;
     }
     else
     {
@@ -325,12 +220,9 @@ std::string remove_ext(std::string my_str){
 
 std::string base_name(std::string path)
 {
-    std::cout << "before: " << path << std::endl ;
     path.erase(std::remove(path.begin(), path.end(), '.'), path.end());
     std::string newstring = path.substr(path.find_last_of("/\\") + 1) ;
-    std::cout << "after: " << newstring << std::endl ;
     return newstring;
-
 }
 
 bool this_is_empty(std::ifstream& pFile)
@@ -344,7 +236,266 @@ void create_folder(std::string out_path, std::string name_folder){
     system(&(create_folder_cmd.str()[0])) ;
 }
 
+// concatenate bed files 
+void concat_bed_files(  std::string bed_path, 
+                        std::string list_files, 
+                        std::string concat_bed, 
+                        std::unordered_map<std::string, int> &peak_count, 
+                        std::unordered_map<std::string, int> &peak_len, 
+                        std::unordered_map<std::string, int> &peak_total_bp, 
+                        std::unordered_map<std::string, std::string> &summary_peak_line, 
+                        long int size_hg19)
+{
+    std::cout << "Concatening all bed files..." << std::endl ;
+    int bed_n_field ;
+    std::stringstream ls_cmd ;
+    ls_cmd << "ls -1 "<< bed_path << "/* > " << list_files ;
+    system(&(ls_cmd.str()[0])) ;
+    std::ifstream list_f(list_files);
 
+    if (this_is_empty(list_f)){
+        std::cout << "Problem while opening " << list_files << ", exiting...\n" ;
+        exit (EXIT_FAILURE) ;
+    }
+    if (list_f.is_open()) {
+        std::string line;
+        while (getline(list_f, line)) {
+            // initialize peak variables
+            std::string tag_name = remove_ext(base_name(line)) ;
+            // local variables
+            int peak_n = 0 ; long long total_length = 0 ; int prev_bed_n_field ; bool first_check = 1 ;
+
+            std::ifstream this_bed(line) ;
+            if (this_is_empty(this_bed)){
+                std::cout << "Problem while opening " << line << ", exiting...\n" ;
+                exit (EXIT_FAILURE) ;
+            }
+            if (this_bed.is_open()) {
+
+                std::string line_bed;
+                std::ofstream my_out ;
+                my_out.open (concat_bed, std::fstream::app) ;
+
+                while (getline(this_bed, line_bed)) {
+                    // Write line in concat_bed file
+                    line_bed.erase(std::remove(line_bed.begin(), line_bed.end(), '\n'), line_bed.end());
+
+                    // Get fields to calculate peak length
+                    std::istringstream iss(line_bed) ;
+                    std::vector <std::string> fields ;
+                    std::string field ;
+                    while(std::getline(iss, field, '\t')){
+                        fields.push_back(field);
+                    }
+
+                    // Check bed fields numbers
+                    bed_n_field = fields.size() ;
+                    if ( first_check ){ prev_bed_n_field = bed_n_field ; first_check = 0 ; }
+                    prev_bed_n_field = bed_n_field ;
+
+                    // WRITE 3 FIELD BED with TAG
+                    my_out << fields[0] << "\t" << fields[1] << "\t" << fields[2] << "\t" << tag_name << "\n" ;
+
+                    // Record peak length
+                    int peak_length = std::stoi(fields[2]) - std::stoi(fields[1]) ;
+                    total_length += peak_length  ;
+                    peak_n += 1 ;
+                }
+                my_out.close() ;
+            }
+            // calculate peak stats
+            int peak_average_length = total_length / peak_n ;
+            double peak_genome_ratio = double(total_length) / double(size_hg19) ;
+            double peak_total_Mbp = double(total_length) / 1e6 ;
+
+            // add stats to map hash
+            peak_count.insert({tag_name, peak_n}) ;
+            peak_len.insert({tag_name, peak_average_length}) ;
+            peak_total_bp.insert({tag_name, total_length}) ;
+
+            // insert to summary peak
+            std::string summary_line = tag_name + "\t" + std::to_string(peak_n) + "\t" + std::to_string(peak_average_length) + "\t" + std::to_string(peak_total_Mbp) + "\t" + std::to_string(peak_genome_ratio) ;
+            summary_peak_line.insert({tag_name, summary_line }) ;
+        }
+        list_f.close();
+	}
+}
+
+
+void bedtools_intersect(std::string bedtools_options, 
+                        std::string sort_options, 
+                        std::string te_data, 
+                        std::string inter_bed_path, 
+                        std::string concat_bed)
+{
+    std::cout << "Intersect with TE database..." << std::endl ;
+    std::stringstream bedtools_cmd ;
+    bedtools_cmd << "bedtools intersect -a "<< te_data << " -b "<< concat_bed << " " << bedtools_options << " | " << sort_options << " > " << inter_bed_path ;
+    system(&(bedtools_cmd.str()[0])) ; 
+}
+
+void sort_peaks(std::string sort_options, 
+                std::string inter_bed_path, 
+                std::string sort_peaks_bed)
+{
+    std::cout << "Re-Sort data by Peaks..." << std::endl ;
+    std::stringstream sort_cmd ;
+    sort_cmd << sort_options << " " << inter_bed_path << " > " << sort_peaks_bed ;
+    system(&(sort_cmd.str()[0])) ; 
+}
+
+
+void parse_intersect(   std::string inter_bed_path, 
+                        std::string bed_path, 
+                        std::unordered_map<std::string,int> &save_fake_list,
+                        int idx_col, 
+                        std::unordered_map<std::string, int> &te_inter_peak,  
+                        std::unordered_map<std::string,int> &teFam_inter_peak,  
+                        std::unordered_map<std::string, int> &te_inter_peak_unique, 
+                        std::unordered_map<std::string, int> &teFam_inter_peak_unique,
+                        std::unordered_map<std::string, int> &peak_count_on_te )
+{
+    std::cout << "Counting peaks vs TE overlaps..." << std::endl ;
+    
+    std::ofstream fake_list ; 
+    std::ifstream inter_bed(inter_bed_path);
+    if (this_is_empty(inter_bed)){
+        std::cout << "Problem while opening " << inter_bed_path << ", exiting...\n" ;
+        exit (EXIT_FAILURE) ;
+    }
+    if (inter_bed.is_open()) {
+        std::string line, prev_te, prev_peak, prev_key , prev_key_fam, prev_tag_name ;
+        while (getline(inter_bed, line)) { 
+            std::istringstream iss(line) ;
+            std::vector <std::string> fields ;
+            std::string field ;
+            while(std::getline(iss, field, '\t')){ 
+                fields.push_back(field);
+            }
+    
+            int total_field = 8 ;
+            std::string tag_name = fields[0] + ":" + fields[1] + "-" + fields[2] ;
+            if ( bed_path.compare("empty") == 0 ){
+                if ( idx_col < 0 ){
+                    tag_name = fields[0] + ":" + fields[1] + "-" + fields[2] ;
+                    if ( save_fake_list.find(tag_name) == save_fake_list.end() ){
+                        fake_list << tag_name << "\n" ;
+                        save_fake_list.insert({tag_name, 1}) ;
+                    }
+                }
+                else
+                {
+                    tag_name = fields[idx_col] ;
+                    if ( save_fake_list.find(tag_name) == save_fake_list.end() ){
+                        fake_list << tag_name << "\n" ;
+                        save_fake_list.insert({tag_name, 1}) ;
+                    }
+                }
+            }
+            else
+            {
+                tag_name = fields[idx_col] ;
+            }
+
+            std::string key = fields[7] + "_" + tag_name ;
+            std::string key_fam = fields[6] + "_" + tag_name ;
+            std::string this_te = fields[0] + fields[1] + fields[2] ;
+            std::string this_peak = fields[total_field+1] + fields[total_field+2] + fields[total_field+3] ; 
+            te_inter_peak[key]++ ; teFam_inter_peak[key_fam]++ ; 
+            
+            if ( this_te.compare(prev_te) != 0 or ( this_te.compare(prev_te) == 0 and tag_name.compare(prev_tag_name) != 0 ) ){
+                te_inter_peak_unique[prev_key]++ ; teFam_inter_peak_unique[prev_key_fam]++ ;
+            }
+
+            prev_te = this_te ; prev_peak = this_peak ; 
+            prev_key = key ; prev_key_fam = key_fam ; 
+            prev_tag_name = tag_name ;
+        }
+    }
+    inter_bed.close() ; fake_list.close() ;
+}
+
+void parse_intersect_sortPeaks( std::string inter_bed_path, 
+                                std::string bed_path, 
+                                int idx_col, 
+                                std::unordered_map<std::string, int> &peak_count_on_te,
+                                std::unordered_map<std::string, int> &peak_count_on_te_unique,
+                                std::unordered_map<std::string, int> &peak_inter_teFam_unique,
+                                std::unordered_map<std::string, int> &peak_inter_te_unique,
+                                std::string list_files  )
+{
+    std::cout << "Counting peaks vs TE overlaps - peak side ..." << std::endl ;
+    std::ofstream fake_list ; 
+    if ( bed_path.compare("empty") == 0 ){ fake_list.open(list_files, std::fstream::app) ; }
+    std::ifstream inter_bed(inter_bed_path);
+    if (this_is_empty(inter_bed)){
+        std::cout << "Problem while opening " << inter_bed_path << ", exiting...\n" ;
+        exit (EXIT_FAILURE) ;
+    }
+    if (inter_bed.is_open()) {
+        std::string line, prev_te, prev_peak, prev_key , prev_key_fam, prev_tag_name ;
+        while (getline(inter_bed, line)) { 
+            std::istringstream iss(line) ;
+            std::vector <std::string> fields ;
+            std::string field ;
+            while(std::getline(iss, field, '\t')){ 
+                fields.push_back(field);
+            }
+
+            int total_field = 8 ;
+            std::string tag_name = fields[0] + ":" + fields[1] + "-" + fields[2] ;
+            if ( bed_path.compare("empty") == 0 ){
+                if ( idx_col < 0 ){
+                    tag_name = fields[0] + ":" + fields[1] + "-" + fields[2] ;
+                } else {
+                    tag_name = fields[idx_col] ;
+                }
+            } else {
+                tag_name = fields[idx_col] ;
+            }
+
+            std::string this_peak = fields[total_field+1] + fields[total_field+2] + fields[total_field+3] ; 
+            std::string key = fields[7] + "_" + tag_name ;
+            std::string key_fam = fields[6] + "_" + tag_name ;
+
+            peak_count_on_te[tag_name]++ ;
+
+            if ( this_peak.compare(prev_peak) != 0 or ( this_peak.compare(prev_peak) == 0 and tag_name.compare(prev_tag_name) != 0 ) ){ // write prev_peak if this one if different OR same but different sample
+                peak_count_on_te_unique[prev_tag_name]++ ;
+                peak_inter_te_unique[prev_key]++ ;
+                peak_inter_teFam_unique[prev_key_fam]++ ;
+            }
+
+            prev_peak = this_peak ; prev_tag_name = tag_name ;
+            prev_key  = key       ; prev_key_fam  = key_fam  ;
+        }
+    }
+    inter_bed.close() ; 
+}
+
+void add_pval_auto(std::string comparison_direction, int mean_peaklen, int avg_subfam_size, 
+        std::vector<double> &all_pvals_best, 
+        double pval, double pval_rev)
+{
+    if ( comparison_direction.compare("auto") == 0 ){
+        // in auto mode, compute the smallest against the largest
+        if ( mean_peaklen > avg_subfam_size ){
+            all_pvals_best.push_back (pval_rev) ;
+        }
+        if ( mean_peaklen <= avg_subfam_size ){
+            all_pvals_best.push_back (pval) ;
+        }
+    }
+    else
+    {
+        if ( comparison_direction.compare("te_in_peak") == 0 ){
+            all_pvals_best.push_back (pval_rev) ;
+        }
+        else if ( comparison_direction.compare("peak_in_te") == 0 ){
+            all_pvals_best.push_back (pval) ;
+        }
+    }
+}
 
 // Calculate adjusted p-values with Benjamin-Hochsberg formula
 std::unordered_map<std::string, double> calc_adj_pval ( std::vector<double> *all_pvals, std::vector<std::string> *subfam_names, bool padj ){
@@ -401,15 +552,15 @@ void print_all_pval_adj (std::string matrix_path,
         std::unordered_map<std::string, double> hyperGeom_alaFish_padj,
         std::unordered_map<std::string, double> binomial_padj,
         std::vector<std::string> *subfam_names, std::vector<int> *all_te_inter_peak_unique,
-       std::vector<int> *all_total_subfam, std::vector<int> *all_te_inter_peak,
-       int my_peak_count_on_te, int my_peak_count, std::vector<double> *all_total_bp_subfam,
+        std::vector<int> *all_total_subfam, std::vector<int> *all_te_inter_peak,
+        int my_peak_count_on_te, int my_peak_count, std::vector<double> *all_total_bp_subfam,
         std::vector<int> *all_avg_subfam_size, std::vector<double> *all_subfam_genome_ratio,
-       double peak_total_Mbp, double peak_ratio_on_te, double ratio_genome_peak, 
-       std::string te_mode, bool *prhead_sum_te, std::string out_path ){
-    
+        double peak_total_Mbp, double peak_ratio_on_te, double ratio_genome_peak, 
+        std::string te_mode, bool *prhead_sum_te, std::string out_path ){
+
     // Writing results
     // open summary for this chipseq sample
-    
+
     std::string summary_file = out_path + "/summary_bed/" + tag_name + "_" + te_mode + ".txt" ;
     std::ofstream summary ;
     summary.open (summary_file, std::fstream::app) ;
@@ -417,7 +568,7 @@ void print_all_pval_adj (std::string matrix_path,
         summary << "subfam_name\tpadj.hypergeom.reg\tpadj.hypergeom.alafisher\tpadj.binomial\tte.count.with.peak\tte.total.n\tpeak.count.on.te\ttotal.peak.ov.te\ttotal.peak.count\ttotal.Mbp.te\tavg.subfam.size\tte.genome.ratio\tpeak.total.Mbp\tpeak.ratio.on.te\tratio.genome.peak\n" ;
         *prhead_sum1 = 0 ;
     }
-   
+
     // Get pval order (to print ordered table) 
     std::vector<int> order_pval((*pvals_ref).size());
     std::size_t n(0);
@@ -453,13 +604,13 @@ void print_all_pval_adj (std::string matrix_path,
         double hyGm_reg_2 = hyperGeom_reg_padj[this_subfam_2] ;
         double hyGm_alaFish_2 = hyperGeom_alaFish_padj[this_subfam_2] ;
         double binomial_2 = binomial_padj[this_subfam_2] ;
-        
-        if ( binomial_padj[this_subfam_2] == 1 )
+
+        if ( hyperGeom_alaFish_padj[this_subfam_2] == 1 )
             mat_out << "\t" << 0 ;
-        else if ( binomial_padj[this_subfam_2] == 0 )
+        else if ( hyperGeom_alaFish_padj[this_subfam_2] == 0 )
             mat_out << "\t" << 300 ;
-        else if ( binomial_padj[this_subfam_2] > 0 ) 
-            mat_out << "\t" << (-1)*log10(binomial_padj[this_subfam_2]) ;
+        else if ( hyperGeom_alaFish_padj[this_subfam_2] > 0 ) 
+            mat_out << "\t" << (-1)*log10(hyperGeom_alaFish_padj[this_subfam_2]) ;
         else
             mat_out << "\tNA" ; 
 
@@ -479,3 +630,221 @@ void print_all_pval_adj (std::string matrix_path,
     summary.close() ; mat_out.close() ;
 }
 
+
+void enrichment_analysis(   std::string type_analysis,
+                            std::string ref_file, int size_hg19, 
+                            std::string comparison_type, std::string tag_name,
+                            int my_peak_count, int my_peak_count_on_te_unique,
+                            int peak_tot_bp, int mean_peaklen, 
+                            std::string comparison_direction, const int te_data_size, 
+                            int total_nonTE, int total_nonTE_bp,
+                            double nonTE_avg_size, double nonTE_genome_ratio,
+                            std::string matrix_path_all_best, std::string out_path,
+                            bool print_padj, bool prhead_mat_all_best, 
+                            bool prhead_mat_all_best_fam, bool prhead_summary_te,
+                            std::unordered_map<std::string, int> &peak_inter_te_unique, 
+                            std::unordered_map<std::string, int> &te_inter_peak_unique )
+{ 
+    bool prhead_sum_all_best = 1, prhead_sum_all_best_fam = 1 ;
+    double peak_total_Mbp = double(peak_tot_bp) / 1000000 ;
+    double peak_ratio_on_te = double(my_peak_count_on_te_unique) / double(my_peak_count) ; 
+    double ratio_genome_peak = double(peak_tot_bp) / double(size_hg19) ;
+
+    std::ifstream ref_in(ref_file);
+    if (this_is_empty(ref_in)){
+        std::cout << "Problem while opening " << ref_file << ", exiting...\n" ;
+        exit (EXIT_FAILURE) ;
+    }
+    if (ref_in.is_open()) {
+
+        // initialize vectors
+        std::vector<std::string> subfam_names;
+        std::vector<double> all_pvals , all_pvals_alafisher , all_pvals_binomial, all_pvals_rev , all_pvals_alafisher_rev , all_pvals_binomial_rev , all_pvals_best , all_pvals_alafisher_best , all_pvals_binomial_best, all_total_bp_subfam, all_subfam_genome_ratio ;
+        std::vector<int> all_te_inter_peak, all_te_inter_peak_unique , all_total_subfam , all_avg_subfam_size;
+
+        // Iterate over subfam names of TEs (or sample of bed file 2) 
+        std::string line;
+        while (getline(ref_in, line)) { 
+            std::istringstream iss(line) ;
+            std::vector <std::string> fields ;
+            std::string field ;
+            while(std::getline(iss, field, '\t')){ 
+                fields.push_back(field);
+            }
+
+            std::string subfam_name = fields[0] ;
+            std::string key = subfam_name + "_" + tag_name ;
+            int n_subfam = std::stoi(fields[1]) ;
+            int total_bp_length_subfam = std::stoi(fields[2]) ;
+            int avg_subfam_size = std::stoi(fields[3]) ;
+            double ratio_genome_subfam = double(total_bp_length_subfam)/double(size_hg19) ;
+            double total_Mbp_len_subfam = double(total_bp_length_subfam) / 1000000 ;
+
+            //all_te_inter_peak.push_back(te_inter_peak[key]) ;
+            all_te_inter_peak_unique.push_back(te_inter_peak_unique[key]) ;
+            all_total_subfam.push_back(n_subfam);
+            all_total_bp_subfam.push_back(total_Mbp_len_subfam);
+            all_avg_subfam_size.push_back(avg_subfam_size);
+            all_subfam_genome_ratio.push_back(ratio_genome_subfam);
+
+            // Calculation of the p-values for each 1-1 relation
+            if (te_inter_peak_unique.find(key) == te_inter_peak_unique.end() || te_inter_peak_unique[key] == 0){
+                subfam_names.push_back (fields[0]) ; all_pvals.push_back (1.0) ;
+                all_pvals_alafisher.push_back (1.0) ; all_pvals_binomial.push_back (1.0) ;
+                all_pvals_rev.push_back (1.0) ; all_pvals_alafisher_rev.push_back (1.0) ;
+                all_pvals_binomial_rev.push_back (1.0) ; all_pvals_best.push_back (1.0) ;
+                all_pvals_alafisher_best.push_back (1.0) ; all_pvals_binomial_best.push_back (1.0) ;
+            }
+            else
+            {
+                ////////////////////////////////////// 
+                // PVAL ENRICHMENT PEAKs AMONG TEs  //
+                //////////////////////////////////////
+
+                // Regular HyperGeometric
+                long long a_11 = peak_inter_te_unique[key] ; //te_inter_peak[key] ;
+                long long a_12 = MAX(0L,n_subfam - a_11) ;
+                long long a_21 = MAX(0L,my_peak_count_on_te_unique - a_11) ;
+                long long a_22 = te_data_size - a_11 - a_12 - a_21 ;
+                double pval = fisher_exact(a_11, a_12, a_21, a_22, comparison_type) ;
+                all_pvals.push_back (pval) ;
+
+                // HyperGeometric with genome occupency - 'ala bedtools fisher'
+                int total_average = mean_peaklen + avg_subfam_size ;
+                long long b_11 = peak_inter_te_unique[key] ; //te_inter_peak[key] ;
+                long long b_12 = MAX(a_12, n_subfam - b_11 ) ;
+                long long b_21 = MAX(0L,my_peak_count - b_11) ;
+                long long b_22 = MAX( int(double(size_hg19) / double(total_average)) - b_11 - b_21 - b_12, 1 )  ;
+                double pval_alafisher = fisher_exact(b_11, b_12, b_21, b_22, comparison_type) ;
+                all_pvals_alafisher.push_back (pval_alafisher) ;
+
+                // Binomial exact test with genome ratio as p
+                int n_tot = my_peak_count ; // number of trials
+                int X_obs = peak_inter_te_unique[key] ; //te_inter_peak[key] ;
+                double p_obs = double( mean_peaklen*X_obs ) / double(total_bp_length_subfam) ;
+                double q_obs = 1 - p_obs ;
+                double p_exp = double(total_bp_length_subfam) / double(size_hg19) ; // Prob to touch subfam by random
+                double pval_binomial = pbinom(X_obs-1, n_tot, p_exp, comparison_type) ;
+                all_pvals_binomial.push_back(pval_binomial) ;
+
+                //////////////////////////////////////
+                // PVAL ENRICHMENT TEs AMONG PEAKs  //
+                //////////////////////////////////////
+
+                // Regular HyperGeometric
+                long long ar_11 = te_inter_peak_unique[key] ;
+                long long ar_12 = MAX(0L,n_subfam - ar_11) ;
+                long long ar_21 = MAX(0L,my_peak_count_on_te_unique - ar_11) ;
+                long long ar_22 = te_data_size - ar_11 - ar_12 - ar_21 ;
+                double pval_rev = fisher_exact(ar_11, ar_12, ar_21, ar_22, comparison_type) ;
+                all_pvals_rev.push_back (pval_rev) ;
+
+                add_pval_auto(  comparison_direction, mean_peaklen, avg_subfam_size, 
+                        all_pvals_best, pval, pval_rev) ;
+
+                // HyperGeometric with genome occupency - 'ala bedtools fisher'
+                total_average = avg_subfam_size ;
+                long long br_11 = te_inter_peak_unique[key] ;
+                long long br_12 = MAX(ar_12, n_subfam - br_11 ) ;
+                long long br_21 = MAX(0L,my_peak_count - br_11 ) ;
+                long long br_22 = MAX( int(double(size_hg19) / double(total_average)) - br_11 - br_21 - br_12, 1)  ;
+                double pval_alafisher_rev = fisher_exact(br_11, br_12, br_21, b_22, comparison_type) ;
+                all_pvals_alafisher_rev.push_back (pval_alafisher_rev) ;
+
+                add_pval_auto(  comparison_direction, mean_peaklen, avg_subfam_size, 
+                        all_pvals_alafisher_best, pval_alafisher, pval_alafisher_rev) ; 
+
+                // Binomial exact test with genome ratio as p 
+                n_tot = n_subfam ; // number of trials
+                X_obs = te_inter_peak_unique[key] ;
+                p_exp = ratio_genome_peak ; // Prob to touch subfam by random
+                double pval_binomial_rev = pbinom(X_obs-1, n_tot, p_exp, comparison_type) ;
+                all_pvals_binomial_rev.push_back(pval_binomial_rev) ;
+                subfam_names.push_back (fields[0]) ;
+
+                add_pval_auto(  comparison_direction, mean_peaklen, avg_subfam_size, 
+                        all_pvals_binomial_best, pval_binomial, pval_binomial_rev) ;
+            }
+        }
+
+        // Getting pval for nonTE
+        subfam_names.push_back ("nonTE") ;
+        int nonTE_intersect = my_peak_count - my_peak_count_on_te_unique ;
+        // reg hypergeometric test
+        int nonTE_a12 = total_nonTE - nonTE_intersect ;
+        int nonTE_a21 = my_peak_count - nonTE_intersect ;
+        int nonTE_a22 = 2*4570939 - nonTE_intersect - nonTE_a12 - nonTE_a21 ;
+        double nonTE_pval_reg = fisher_exact(nonTE_intersect, nonTE_a12, nonTE_a21, nonTE_a22, comparison_type) ;
+        all_pvals_best.push_back (nonTE_pval_reg) ;
+
+        // hypergeometric alafisher
+        int peak_nonTE_total_average = 276 + mean_peaklen ;
+        int nonTE_b22 = MAX( int(double(size_hg19) / double(peak_nonTE_total_average)) - nonTE_intersect - nonTE_a12 - nonTE_a21 , 1)  ;
+        double nonTE_pval_alafisher = fisher_exact(nonTE_intersect, nonTE_a12, nonTE_a21, nonTE_b22, comparison_type) ;
+        all_pvals_alafisher_best.push_back (nonTE_pval_alafisher) ;
+
+        // binomial test
+        int n_tot_nonTE = my_peak_count ; // number of trials
+        int X_obs_nonTE = nonTE_intersect ;
+        double p_obs_nonTE = double( mean_peaklen*X_obs_nonTE ) / double(total_nonTE_bp) ;
+        double q_obs_nonTE = 1 - p_obs_nonTE ;
+        double p_exp_nonTE = double(total_nonTE_bp) / double(size_hg19) ; // Prob to touch fam by random
+        double nonTE_pval_binomial = pbinom(X_obs_nonTE-1, n_tot_nonTE, p_exp_nonTE, comparison_type) ;
+        all_pvals_binomial_best.push_back (nonTE_pval_binomial) ;
+
+        all_te_inter_peak.push_back(nonTE_intersect) ;
+        all_te_inter_peak_unique.push_back(nonTE_intersect) ;
+        all_total_subfam.push_back(total_nonTE);
+        all_total_bp_subfam.push_back(total_nonTE_bp);
+        all_avg_subfam_size.push_back( double(nonTE_avg_size) );
+        all_subfam_genome_ratio.push_back(nonTE_genome_ratio);
+
+        // Get ajusted p-values with Benjamin-Hochsberg method 
+        std::unordered_map<std::string, double> padj_hygm_reg = calc_adj_pval(&all_pvals_best, &subfam_names, print_padj) ;
+        std::unordered_map<std::string, double> padj_hygm_alaFish = calc_adj_pval(&all_pvals_alafisher_best, &subfam_names, print_padj) ;
+        std::unordered_map<std::string, double> padj_hygm_binom = calc_adj_pval(&all_pvals_binomial_best, &subfam_names, print_padj) ;
+
+        // Printing final results with 3 adjusted p-values
+        print_all_pval_adj(matrix_path_all_best, tag_name,
+                &prhead_sum_all_best, &prhead_mat_all_best, &all_pvals_binomial_best,
+                padj_hygm_reg, padj_hygm_alaFish, padj_hygm_binom,
+                &subfam_names, &all_te_inter_peak_unique,
+                &all_total_subfam,  &all_te_inter_peak,
+                my_peak_count_on_te_unique, my_peak_count, &all_total_bp_subfam,
+                &all_avg_subfam_size, &all_subfam_genome_ratio,
+                peak_total_Mbp, peak_ratio_on_te, ratio_genome_peak,
+                type_analysis, &prhead_summary_te, out_path ) ;
+    }
+    ref_in.close() ;
+}
+
+void print_help(int X, int Y){
+
+    std::cout << "__/\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\__/\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\__________________________________________________/\\\\\\_________        " << std::endl ;
+    std::cout << " _\\///////\\\\\\/////__\\/\\\\\\///////////__________________________________________________\\/\\\\\\_________       " << std::endl ;
+    std::cout << "  _______\\/\\\\\\_______\\/\\\\\\__________________________________________/\\\\\\_______________\\/\\\\\\_________      " << std::endl ;
+    std::cout << "   _______\\/\\\\\\_______\\/\\\\\\\\\\\\\\\\\\\\\\______/\\\\/\\\\\\\\\\\\____/\\\\/\\\\\\\\\\\\\\__\\///______/\\\\\\\\\\\\\\\\_\\/\\\\\\_________     " << std::endl ;
+    std::cout << "    _______\\/\\\\\\_______\\/\\\\\\///////______\\/\\\\\\////\\\\\\__\\/\\\\\\/////\\\\\\__/\\\\\\___/\\\\\\//////__\\/\\\\\\\\\\\\\\\\\\\\__    " << std::endl ;
+    std::cout << "     _______\\/\\\\\\_______\\/\\\\\\_____________\\/\\\\\\__\\//\\\\\\_\\/\\\\\\___\\///__\\/\\\\\\__/\\\\\\_________\\/\\\\\\/////\\\\\\_   " << std::endl ; 
+    std::cout << "      _______\\/\\\\\\_______\\/\\\\\\_____________\\/\\\\\\___\\/\\\\\\_\\/\\\\\\_________\\/\\\\\\_\\//\\\\\\________\\/\\\\\\___\\/\\\\\\_  " << std::endl ;
+    std::cout << "       _______\\/\\\\\\_______\\/\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\_\\/\\\\\\___\\/\\\\\\_\\/\\\\\\_________\\/\\\\\\__\\///\\\\\\\\\\\\\\\\_\\/\\\\\\___\\/\\\\\\_ " << std::endl ;
+    std::cout << "        _______\\///________\\///////////////__\\///____\\///__\\///__________\\///_____\\////////__\\///____\\///__" << std::endl ;
+    std::cout << "         V" << version << std::endl << std::endl ;
+    std::cout << "Required options :                      " << std::endl ;
+    std::cout << "./TEnrich --bed_dir path/to/dirWithBeds \\\n" ;
+    std::cout << "          --out_dir path/to/dirOut \\\n" ;
+    std::cout << "\n" ;
+    print_help_line("--bed_dir path/to/dirWithBeds [string]","every file with *.bed ext in the folder will be used",X,Y) ;
+    print_help_line("--single_file path/to/bed_file [string]", "if this is given, it will use a single file instead of a group of bed file to do the enrichment (cancels --bed_dir option). If no index column is given, will perform the enrichment analysis on each single lines. Otherwise, it will group lines per name of the feature in the column designed by --idx_col option.", X, Y) ;
+    print_help_line("--idx_col [integer]","designate the index of the column (WARNING: 0-based index, which means index 0 is the first column, index 1 is the second, etc...) to be used in file given in --single_file to group lines.",X,Y) ;
+    print_help_line("--out_dir path/to/dirOut [string]","The folder is created and results written inside (WARNING: everything is cleaned before a new run)",X,Y) ;
+    print_help_line("--genome_size [integer/double]","Genome size over which the enrichment calculation will be done. Expect only digits. [OPTIONAL]. Default value : 3088269832",X,Y) ;
+    print_help_line("--comp_sense ['te_in_peak','peak_in_te','auto']","Defines the direction for the comparison, 'te_in_peak' or 'peak_in_te'. In 'auto' mode, it will take the enrichment of the smaller to the bigger [OPTIONAL]. Default value : 'auto'",X,Y) ;
+    print_help_line("--stat_test_type ['greater','less']","For statistical test done (Hypergeometric and Binomial), tell if we want the right tail ('greater') or the left tail ('less'), in other words the probability of having a equal or greater / equal or lower number of hits in the intersect. [OPTIONAL]. Default value : 'greater'",X,Y) ;
+    print_help_line("--padj ['true','false']","tell if you want to print the adjusted p-val (with the Benjamin-Hochsberg correction). [OPTIONAL]. Default value : 'true'",X,Y) ;
+    print_help_line("--ref_subfam [STRING]","subfam ref file obtained with utils/make_ref_file.pl. If not specified, the one for hg19 in db/ folder will be used [OPTIONAL]. Default value : 'db/Subfam_ref_TE.txt'",X,Y) ;
+    print_help_line("--ref_fam [STRING]","fam ref file obtained with utils/make_ref_file.pl. If not specified, the one for hg19 in db/ folder will be used [OPTIONAL]. Default value : 'db/Fam_ref_TE.txt'",X,Y) ;
+    print_help_line("--te_database [STRING]","database of TE used to make the intersection. Should be in bed format, as returned by utils/convert_repeatmasker.sh. By default, uses hg19 with LTR merged by J.Duc. [OPTIONAL]. Default value : 'db/hg19_TE_repmask_LTRm_s_20140131.bed",X,Y) ; 
+
+    exit (EXIT_FAILURE) ;
+}

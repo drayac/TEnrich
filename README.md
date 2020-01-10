@@ -58,6 +58,16 @@ you should not move it afterwards (databases in TEnrich/db/
 folder should be accessible). If you want to move it, just
 re-do a make after the move.
 
+### BUG with MacOSX Mojave and higher ###
+You may encounter this bug after making the update towards Mojave or higher
+fatal error: 'wchar.h' file not found
+Apparently the names of the folders containing main dependencies were changed
+To solve it this is one option (worked on Mojave 10.14.6) 
+    
+    xcode-select --install
+    sudo xcode-select --switch /Library/Developer/CommandLineTools/
+    open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg
+
 ### How to build with LINUX (tested on SCITAS - EPFL clusters) ### 
 
 Here an exemple working with Ubuntu 16.04 and clang6.0 :
