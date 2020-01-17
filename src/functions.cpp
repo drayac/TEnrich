@@ -270,7 +270,6 @@ void concat_bed_files(  std::string bed_path,
             int peak_average_length = total_length / peak_n ;
             double peak_genome_ratio = double(total_length) / double(size_hg19) ;
             double peak_total_Mbp = double(total_length) / 1e6 ;
-            std::cout << "total_length : " << total_length << std::endl ;
 
             // add stats to map hash
             peak_count.insert({tag_name, peak_n}) ;
@@ -531,7 +530,7 @@ void print_all_pval_adj (std::string matrix_path,
     std::ofstream summary ;
     summary.open (summary_file, std::fstream::app) ;
     if ( *prhead_sum1 ){ 
-        summary << "name\tpadj.hGeom\tpadj.binom\tnTE\ttot.nTE\tp\tdir.auto\texpect\tavg.sfam.size\n" ;
+        summary << "name\tpadj.hGeom\tpadj.binom\tnTE\ttot.nTE\tp\texpect\tdir.auto\tavg.sfam.size\n" ;
         *prhead_sum1 = 0 ;
     }
 
@@ -568,7 +567,6 @@ void print_all_pval_adj (std::string matrix_path,
         // Make matrix ( requires regular order )
         std::string this_subfam_2 = (*subfam_names)[i] ;
         double hyGm_reg_2 = hyperGeom_reg_padj[this_subfam_2] ;
-        //double hyGm_alaFish_2 = hyperGeom_alaFish_padj[this_subfam_2] ;
         double binomial_2 = binomial_padj[this_subfam_2] ;
 
         if ( binomial_padj[this_subfam_2] == 1 )
@@ -587,9 +585,9 @@ void print_all_pval_adj (std::string matrix_path,
         summary_subfam.open (summary_subfam_file, std::fstream::app) ;
 
         if ( *prhead_sum_te ){
-            summary_subfam << "name\tpadj.hGeom\tpadj.binom\tnTE\ttot.nTE\tp\tdir.auto\texpect\tavg.sfam.size\n" ;
+            summary_subfam << "name\tpadj.hGeom\tpadj.binom\tnTE\ttot.nTE\tp\texpect\tdir.auto\tavg.sfam.size\n" ;
         }
-        summary_subfam << (*subfam_names)[order_pval[i]] << "\t"  << hyGm_reg << "\t" << binomial << "\t" << (*all_te_inter_peak_unique)[order_pval[i]] << "\t" << (*all_total_subfam)[order_pval[i]] << "\t" << (*all_pbinom)[order_pval[i]] << "\t" << (*all_expect)[order_pval[i]] << "\t" << (*all_dir_pbinom)[order_pval[i]] << "\t" << (*all_avg_subfam_size)[order_pval[i]] << "\n" ;
+        summary_subfam << tag_name << "\t"  << hyGm_reg_2 << "\t" << binomial_2 << "\t" << (*all_te_inter_peak_unique)[i] << "\t" << (*all_total_subfam)[i] << "\t" << (*all_pbinom)[i] << "\t" << (*all_expect)[i] << "\t" << (*all_dir_pbinom)[i] << "\t" << (*all_avg_subfam_size)[i] << "\n" ;
         summary_subfam.close() ;
     }
     mat_out << "\n" ;                

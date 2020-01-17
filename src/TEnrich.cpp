@@ -46,8 +46,8 @@ int main(int argc, char* argv[])
     if ( print_padj_str.compare("false") == 0 ){ print_padj = 0 ; }
 
     // Creating output folders
-    create_folder(out_path,"summary_bed") ;         create_folder(out_path,"summary_te_fam") ;
-    create_folder(out_path,"summary_te_subfam") ;   system("mkdir -p temp_TEnrich") ;
+    create_folder(out_path,"summary_bed") ;       create_folder(out_path,"summary_te_fam") ;
+    create_folder(out_path,"summary_te_subfam") ; system("mkdir -p temp_TEnrich") ;
 
     // Check TE data number of fields
     std::cout << "Checking that TE data is ok\n" ;
@@ -102,8 +102,8 @@ int main(int argc, char* argv[])
     //////////////////////////////////////
     // 3) COMPUTE ENRICHMENT BY SAMPLES //
     //////////////////////////////////////
-  
-    std::cout << "Starting enrichment analysis for sample : \n" ;
+ 
+    std::cout << "Enrichment analysis" << std::endl ; 
     // initialize variables 
     bool prhead_mat_all_best = 1, prhead_mat_all_best_fam = 1, prhead_summary_te  = 1 ;
     std::string matrix_path_all_best = out_path + "/matrix_padjAlaBTFisher_Subfam.txt" ;
@@ -135,7 +135,6 @@ int main(int argc, char* argv[])
         while (getline(list_f2, line_ref)) {
             
             std::string tag_name = remove_ext(base_name(line_ref)) ;
-            std::cout << ", " << tag_name ;
             
             // getting peak stats
             int mean_peaklen = peak_len[tag_name] , my_peak_count = peak_count[tag_name] , my_peak_count_on_te_unique = peak_count_on_te_unique[tag_name] , peak_tot_bp = peak_total_bp[tag_name] ;
