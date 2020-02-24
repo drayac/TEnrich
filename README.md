@@ -115,6 +115,12 @@ ________________________________________________________________________________
      --padj ['true','false'] : tell if you want to print the adjusted p-val (with
     the Benjamin-Hochsberg correction). [OPTIONAL]. Default value : 'true'
 
+    --type_hypergeom ['ala_bedtools_fisher','regular'] : type of hypergeometric te-
+    st to do. By default, will use a similar method that bedtools fisher uses (de-
+    scription: https://bedtools.readthedocs.io/en/latest/content/tools/fisher.html).
+    With regular option, uses a simple hypergeometric without weighting for TE loci 
+    length.
+
      --ref_subfam [STRING] : subfam ref file obtained with utils/make_ref_file.pl.
     If not specified, the one for hg19 in db/ folder will be used [OPTIONAL].
     Default value : 'db/Subfam_ref_TE.txt'
