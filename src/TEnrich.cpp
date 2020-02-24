@@ -32,6 +32,7 @@ int main(int argc, char* argv[])
     const int te_data_size = 4570939 ;  bool print_padj = 1 ;
     std::string this_dir = <FOLDER_INSTALL> ;
     std::string version  = <VERSION> ; 
+    const int idx_col = 12 ; // index of column with tag name
     
     check_folder(this_dir) ; // check this_dir exists
     
@@ -41,8 +42,7 @@ int main(int argc, char* argv[])
     // Get parameters
     std::vector <std::string> input = get_parameters(argc,argv) ; 
     std::string bed_path = input[0] , out_path = input[1] , type_hypergeom = input[2], comparison_direction = input[3] , comparison_type = input[4] , print_padj_str = input[5] , ref_file = input[6] , ref_file_fam = input[7] , te_data = input[9] , single_file = input[10] ;
-    long int size_hg19 = std::stol(input[12]) ; 
-    int idx_col = std::stoi(input[11]) ;
+    long int size_hg19 = std::stol(input[11]) ; 
     if ( print_padj_str.compare("false") == 0 ){ print_padj = 0 ; }
 
     // Creating output folders
@@ -65,13 +65,7 @@ int main(int argc, char* argv[])
     std::string concat_bed = "temp_TEnrich/concat_all.bed" ;
     std::string list_files = "temp_TEnrich/temp.list_files.txt" ;
     
-    if ( bed_path.compare("empty") != 0 ){ // only if multiple files are present
-        concat_bed_files(bed_path, list_files, concat_bed, peak_count, peak_len, peak_total_bp, summary_peak_line, size_hg19) ;
-        idx_col = 12 ;
-    } else { // if working with a single-file, consider it as our concatenated bed
-        concat_bed = single_file ;
-        idx_col += 9 ;
-    }
+        concat_bed_files(bed_path, list_files, concat_bed, peak_count, peak_len, peak_total_bp, summary_peak_line, size_hg19, single_file) ;
 
     ///////////////////////////////////////////////
     // 2) INTERSECT concat_bed with te_data file //
@@ -88,7 +82,7 @@ int main(int argc, char* argv[])
     parse_intersect(inter_bed_path, bed_path, save_fake_list, idx_col,
                     te_inter_peak , teFam_inter_peak, 
                     te_inter_peak_unique, teFam_inter_peak_unique,
-                    peak_count_on_te) ;
+                    peak_count_on_te, list_files ) ;
 
     // Resort by peaks to count te_in_peak 
     std::unordered_map<std::string, int> peak_inter_teFam_unique, peak_inter_te_unique ;
@@ -96,8 +90,7 @@ int main(int argc, char* argv[])
     sort_peaks("sort -k9,9 -k10,10n -k13", inter_bed_path, inter_bed_sortPeaks) ;
     parse_intersect_sortPeaks( inter_bed_path,    inter_bed_sortPeaks, idx_col, 
                                 peak_count_on_te, peak_count_on_te_unique,
-                                peak_inter_teFam_unique, peak_inter_te_unique , 
-                                list_files ) ;
+                                peak_inter_teFam_unique, peak_inter_te_unique ) ;
 
     //////////////////////////////////////
     // 3) COMPUTE ENRICHMENT BY SAMPLES //
@@ -106,8 +99,8 @@ int main(int argc, char* argv[])
     std::cout << "Enrichment analysis" << std::endl ; 
     // initialize variables 
     bool prhead_mat_all_best = 1, prhead_mat_all_best_fam = 1, prhead_summary_te  = 1 ;
-    std::string matrix_path_all_best = out_path + "/matrix_padjAlaBTFisher_Subfam.txt" ;
-    std::string matrix_fam = out_path + "/matrix_padjAlaBTFisher_Fam.txt" ;
+    std::string matrix_path_all_best = out_path + "/matrix_padjBinomial_Subfam.txt" ;
+    std::string matrix_fam = out_path + "/matrix_padjBinomial_Fam.txt" ;
     std::string line_ref;
     // nonTE parameters 
     int total_nonTE = 4433186 ; // we estimate the number of nonTE interval ~= TE interval after merge
@@ -158,7 +151,7 @@ int main(int argc, char* argv[])
                                 nonTE_avg_size, nonTE_genome_ratio,
                                 matrix_path_all_best, out_path,
                                 print_padj, prhead_mat_all_best, 
-                                prhead_mat_all_best_fam, prhead_summary_te,
+                                prhead_summary_te,
                                 peak_inter_te_unique, te_inter_peak_unique,
                                 type_hypergeom ) ;  
 
@@ -173,7 +166,7 @@ int main(int argc, char* argv[])
                                 total_nonTE, total_nonTE_bp,
                                 nonTE_avg_size, nonTE_genome_ratio,
                                 matrix_fam, out_path,
-                                print_padj, prhead_mat_all_best, 
+                                print_padj, 
                                 prhead_mat_all_best_fam, prhead_summary_te,
                                 peak_inter_teFam_unique, teFam_inter_peak_unique,
                                 type_hypergeom ) ;
@@ -183,7 +176,8 @@ int main(int argc, char* argv[])
         list_f2.close() ; summary_bed.close() ;
     }
 
-    std::cout << "\n" ;
+    std::cout << "\nCleaning temp files ... \n" ;
+    
     // Cleaning temp directory 
     system("rm -rf temp_TEnrich/") ;
 }

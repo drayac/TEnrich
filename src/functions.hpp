@@ -27,7 +27,13 @@ bool this_is_empty(std::ifstream&) ;
 
 void create_folder(std::string out_path, std::string name_folder) ;
 
-void concat_bed_files(std::string bed_path, std::string list_files, std::string concat_bed, std::unordered_map<std::string, int> &peak_count, std::unordered_map<std::string, int> &peak_len, std::unordered_map<std::string, int> &peak_total_bp, std::unordered_map<std::string, std::string> &summary_peak_line, long int size_hg19 ) ;
+void concat_bed_files(  std::string bed_path, std::string list_files, 
+                        std::string concat_bed, 
+                        std::unordered_map<std::string, int> &peak_count, 
+                        std::unordered_map<std::string, int> &peak_len, 
+                        std::unordered_map<std::string, int> &peak_total_bp, 
+                        std::unordered_map<std::string, std::string> &summary_peak_line, 
+                        long int size_hg19, std::string single_file ) ;
 
 void bedtools_intersect(std::string bedtools_options, std::string sort_options, std::string te_data, std::string inter_bed_path, std::string concat_bed) ;
 
@@ -42,7 +48,8 @@ void parse_intersect(std::string inter_bed_path, std::string bed_path,
                         std::unordered_map<std::string,int> &teFam_inter_peak, 
                         std::unordered_map<std::string, int> &te_inter_peak_unique, 
                         std::unordered_map<std::string, int> &teFam_inter_peak_unique,
-                        std::unordered_map<std::string, int> &peak_count_on_te) ;
+                        std::unordered_map<std::string, int> &peak_count_on_te,
+                        std::string list_files ) ;
 
 void parse_intersect_sortPeaks( std::string inter_bed_path, 
                                 std::string bed_path, 
@@ -50,8 +57,7 @@ void parse_intersect_sortPeaks( std::string inter_bed_path,
                                 std::unordered_map<std::string, int> &peak_count_on_te,
                                 std::unordered_map<std::string, int> &peak_count_on_te_unique,
                                 std::unordered_map<std::string, int> &peak_inter_teFam_unique,
-                                std::unordered_map<std::string, int> &peak_inter_te_unique ,
-                                std::string list_files ) ;
+                                std::unordered_map<std::string, int> &peak_inter_te_unique ) ;
 
 double compute_hypergeom(   std::unordered_map<std::string, int> &peak_inter_te_unique,
                             std::string key,
@@ -77,7 +83,7 @@ void enrichment_analysis(   std::string type_analysis,
                             double nonTE_avg_size, double nonTE_genome_ratio,
                             std::string matrix_path_all_best, std::string out_path,
                             bool print_padj, bool &prhead_mat_all_best, 
-                            bool &prhead_mat_all_best_fam, bool &prhead_summary_te,
+                            bool &prhead_summary_te,
                             std::unordered_map<std::string, int> &peak_inter_te_unique, 
                             std::unordered_map<std::string, int> &te_inter_peak_unique,
                             std::string type_hypergeom ) ;
@@ -113,5 +119,6 @@ void print_all_pval_adj (
         std::string out_path,
         std::vector<double> *all_pbinom, 
         std::vector<long int> *all_expect,
-        std::vector<std::string> *all_dir_pbinom  ) ;
+        std::vector<std::string> *all_dir_pbinom,
+        std::vector<double> *all_fc_expect  ) ;
 
