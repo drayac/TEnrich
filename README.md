@@ -7,23 +7,6 @@ ________________________________________________________________________________
 Code was written in C++11 , by Alexandre Coudray from the
 laboratory of Virology and Genetics at the EPFL in 2019.
 
-
-_________________________________________________________________________________
-## Versions history ##
-
-Updates news :
-- v0.2 : -> Enrichment of TE families (prev. only subfam)
-         -> adjustement of make.pl for Ubuntu   
-- v0.3 : -> new options added
-         -> add nonTE enrichment 
-- v0.4 : -> add enrichment of TE clusters (incomplete)
-- v0.5 : -> new utils to be able to check foreign species
-         -> fixed bug when beds of diverse size are given
-- v0.6 : -> fixed bug to allow the use of relative path 
-            for --bed_dir and --out_dir parameters
-- v0.7 : -> add --single_file option to make enrichment 
-            from a single bed file
-
 _________________________________________________________________________________
 ## Download and get TEnrich ##
 
@@ -185,4 +168,23 @@ utils/make_ref_TE.pl --file db/danRer10_repMask406_dfam2_TEs.bed \
 utils/make_ref_TE.pl --file db/danRer10_repMask406_dfam2_TEs.bed \
     --index 7 \
     > db/danRer10_Fam_ref_TE.txt
+
+_________________________________________________________________________________
+## Versions history ##
+
+Updates news :
+- v0.2 : -> Enrichment of TE families (prev. only subfam)
+         -> adjustement of make.pl for Ubuntu   
+- v0.3 : -> new options added
+         -> add nonTE enrichment 
+- v0.4 : -> add enrichment of TE clusters (incomplete)
+- v0.5 : -> new utils to be able to check foreign species
+         -> fixed bug when beds of diverse size are given
+- v0.6 : -> fixed bug to allow the use of relative path 
+            for --bed_dir and --out_dir parameters
+- v0.7 : -> add --single_file option to make enrichment 
+            from a single bed file
+- v1.0 : -> Improvements on the code , make it cleaner and more robust
+- v1.1 : -> Fixed bug with binomial stats
+
 
