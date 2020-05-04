@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
     // bedtools intersection  
     std::string inter_bed_path = "temp_TEnrich/temp.out.bed" ;
     bedtools_intersect( "-f 0.5 -F 0.5 -e -wa -wb", // bedtools options
-                        "sort -k1,1 -k2,2n -k9,9 -k10,10n", // sorting option
+                        "sort -k1,1 -k2,2n -k13", // sorting option (sort peaks : -k9,9 -k10,10n) 
                         te_data, inter_bed_path, concat_bed) ;
 
     // Parse intersect and get all counts
@@ -179,5 +179,5 @@ int main(int argc, char* argv[])
     std::cout << "\nCleaning temp files ... \n" ;
     
     // Cleaning temp directory 
-    system("rm -rf temp_TEnrich/") ;
+    //system("rm -rf temp_TEnrich/") ;
 }

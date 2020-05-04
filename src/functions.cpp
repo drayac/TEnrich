@@ -367,6 +367,7 @@ void parse_intersect(   std::string inter_bed_path,
             std::string key_fam = fields[6] + "_" + tag_name ;
             std::string this_te = fields[0] + fields[1] + fields[2] ;
             std::string this_peak = fields[total_field+1] + fields[total_field+2] + fields[total_field+3] ; 
+            //std::string unique_key = this_te + tag ;
             te_inter_peak[key]++ ; teFam_inter_peak[key_fam]++ ; 
             
             if ( this_te.compare(prev_te) != 0 or ( this_te.compare(prev_te) == 0 and tag_name.compare(prev_tag_name) != 0 ) ){
