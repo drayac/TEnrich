@@ -54,9 +54,9 @@ std::vector <std::string> get_parameters(int c_argc, char *c_argv[]){
     int i ;
     for (i = 1; i < c_argc; ++i) {
         std::string this_param = std::string(c_argv[i]) ;
-        add_param(bed_dir,      "--bed_dir",    i,  c_argc, c_argv) ;
-        add_param(out_dir,      "--out_dir",    i,  c_argc, c_argv) ;
-        add_param(type_hypergeom,  "--type_hypergeom",i,  c_argc, c_argv) ;
+        add_param(bed_dir,      "-i",    i,  c_argc, c_argv) ;
+        add_param(out_dir,      "-o",    i,  c_argc, c_argv) ;
+        add_param(type_hypergeom,"--type_hypergeom",i,  c_argc, c_argv) ;
         add_param(comp_sense,   "--comp_sense", i,  c_argc, c_argv) ;
         add_param(stat_test_type,"--stat_test_type",i,c_argc,c_argv) ;
         add_param(padj,         "--padj",       i,  c_argc, c_argv) ;
@@ -860,14 +860,14 @@ void print_help(int X, int Y, std::string detail){
     std::cout << "             \\///________\\///////////////__\\///____\\///__\\///__________\\///_____\\////////__\\///____\\///" << std::endl ;
     std::cout <<  std::endl << std::endl ;
     std::cout << "TEnrich for multiple beds :\n\n\tEach bed is considered as a set of regions\n\tenrichment is done on the whole set of regions" << std::endl ;
-    std::cout << "\n\tTEnrich --bed_dir path/to/dirWithBeds --out_dir path/to/dirOut\n\n" ;
-    std::cout << "TEnrich for one single bed :\n\n\tEnrichment analysis is perform on each line of the bed separately\n\tsize regions > 10kb recommended" << std::endl ;
+    std::cout << "\n\tTEnrich -i path/to/dirWithBeds -o path/to/dirOut\n\n" ;
+    std::cout << "TEnrich for one single bed (analysis per region) :\n\n\tEnrichment analysis is perform on each line separately - Each line is considered as an independant region on which we want to make an enrichment\n\tsize regions > 10kb recommended" << std::endl ;
     std::cout << "\n\tTEnrich --single_file path/to/file.bed --out_dir path/to/dirOut\n\n" ;
     std::cout << "for detailed help of each parameters :                      " << std::endl ;
     std::cout << "\n\tTEnrich -hd\n\n" ;
     if ( detail.compare("detail") == 0 ){
-        print_help_line("--bed_dir path/to/dirWithBeds [string]","every file with *.bed ext in the folder will be used",X,Y) ;
-        print_help_line("--out_dir path/to/dirOut [string]","The folder is created and results written inside (WARNING: everything is cleaned before a new run)",X,Y) ;
+        print_help_line("-i [--bed_dir] path/to/dirWithBeds [string]","every file with *.bed ext in the folder will be used",X,Y) ;
+        print_help_line("-o [--out_dir] path/to/dirOut [string]","The folder is created and results written inside (WARNING: everything is cleaned before a new run)",X,Y) ;
         print_help_line("--single_file path/to/bed_file [string]", "if this is given, it will use a single file instead of a group of bed file to do the enrichment (cancels --bed_dir option). If no index column is given, will perform the enrichment analysis on each single lines. Otherwise, it will group lines per name of the feature in the column designed by --idx_col option.", X, Y) ;
         print_help_line("--type_hypergeom ['ala_bedtools_fisher','regular']","type of hypergeometric test to do. By default, will use a similar method that bedtools fisher uses (description: https://bedtools.readthedocs.io/en/latest/content/tools/fisher.html). With regular option, uses a simple hypergeometric without weighting for TE loci length",X,Y) ; 
         print_help_line("--comp_sense ['te_in_peak','peak_in_te','auto']","Defines the direction for the comparison, 'te_in_peak' or 'peak_in_te'. In 'auto' mode, it will take the enrichment of the smaller to the bigger [OPTIONAL]. Default value : 'auto'",X,Y) ;

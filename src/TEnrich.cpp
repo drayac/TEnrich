@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
     std::string concat_bed = "temp_TEnrich/concat_all.bed" ;
     std::string list_files = "temp_TEnrich/temp.list_files.txt" ;
     
-        concat_bed_files(bed_path, list_files, concat_bed, peak_count, peak_len, peak_total_bp, summary_peak_line, size_hg19, single_file) ;
+    concat_bed_files(bed_path, list_files, concat_bed, peak_count, peak_len, peak_total_bp, summary_peak_line, size_hg19, single_file) ;
 
     ///////////////////////////////////////////////
     // 2) INTERSECT concat_bed with te_data file //
@@ -176,8 +176,13 @@ int main(int argc, char* argv[])
         list_f2.close() ; summary_bed.close() ;
     }
 
-    std::cout << "\nCleaning temp files ... \n" ;
+    // Make enrichment summary
+    std::cout << "Enrichment summary per bed ...\n" ;
+    std::stringstream enrich_summary_cmd ;
+    enrich_summary_cmd << this_dir << "/utils/enrichment_per_subfam.pl --dir " << out_path << "/summary_bed --suffix _te_subfam.txt --out " << out_path << "/summary_per_bed.txt" ;
+    system(&(enrich_summary_cmd.str()[0])) ;
     
     // Cleaning temp directory 
-    //system("rm -rf temp_TEnrich/") ;
+    std::cout << "\nCleaning temp files ... \n" ;
+    system("rm -rf temp_TEnrich/") ;
 }

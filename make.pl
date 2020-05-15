@@ -7,7 +7,7 @@ use Cwd ;
 
 my $CXX='clang++' ;
 my $CXXFLAGS='-std=c++11' ;
-my $version='1.1' ;
+my $version='1.2' ;
 
 GetOptions(
     "compiler=s" => \$CXX,
