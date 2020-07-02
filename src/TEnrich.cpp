@@ -180,7 +180,7 @@ int main(int argc, char* argv[])
     std::cout << "Enrichment summary per bed ...\n" ;
     std::stringstream enrich_summary_cmd ;
     enrich_summary_cmd << this_dir << "/utils/enrichment_per_subfam.pl --dir " << out_path << "/summary_bed --suffix _te_subfam.txt --out " << out_path << "/summary_per_bed.txt" ;
-    system(&(enrich_summary_cmd.str()[0])) ;
+    //system(&(enrich_summary_cmd.str()[0])) ;
     
     // Cleaning temp directory 
     std::cout << "\nCleaning temp files ... \n" ;

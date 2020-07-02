@@ -11,6 +11,10 @@ ________________________________________________________________________________
 ## Download and get TEnrich ##
 
 ### Two options : ###
+
+First option, using git clone 
+
+Warning : you need to have git lfs ! If you don't, you should be able to install it through `brew install git-lfs`    
     
     Go to the desired folder where you want to install TEnrich and launch 
     git clone https://github.com/alexdray86/TEnrich.git
